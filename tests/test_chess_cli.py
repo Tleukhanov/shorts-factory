@@ -24,9 +24,11 @@ except ImportError:  # pragma: no cover
     HAVE_CHESS = False
 
 from shorts_clipper import __main__ as cli
-from shorts_clipper.chess import analysis, batch
+from shorts_clipper.chess import analysis, batch, lichess
 from shorts_clipper.core.settings import Settings
 from shorts_clipper.pipeline.stock_dedup import record_used
+
+FIXTURE = Path(__file__).with_suffix("").parent / "fixtures" / "tournament.pgn"
 
 
 def _blunder_pgn(seed: int = 20261005, want_cp: int = 400, white: str = "A") -> str | None:
@@ -73,7 +75,7 @@ class _Args(argparse.Namespace):
         super().__init__(
             path=[], output=None, count=1, critical_cp=None, min_ply=None,
             music=None, no_music=False, seed=7, used_path=None, clear_used=False,
-            continue_on_error=False,
+            continue_on_error=False, tactics_config=None, analysis_config=None,
         )
         for k, v in kw.items():
             setattr(self, k, v)
@@ -107,13 +109,16 @@ class ParserTests(unittest.TestCase):
     def test_every_content_format_is_reachable(self):
         """A format the parser does not accept is a format the factory cannot run."""
         parser = cli.build_parser()
-        for fmt in ("deciding", "challenge", "opening", "endgame", "highlight"):
+        for fmt in (
+            "deciding", "challenge", "opening", "endgame", "highlight",
+            "tournament", "analysis",
+        ):
             with self.subTest(fmt=fmt):
                 args = parser.parse_args(["chess", "g.pgn", "--format", fmt])
                 self.assertEqual(args.format, fmt)
 
         chess_help = parser._subparsers._group_actions[0].choices["chess"].format_help()  # noqa: SLF001
-        for fmt in ("challenge", "opening", "endgame", "highlight"):
+        for fmt in ("challenge", "opening", "endgame", "highlight", "tournament", "analysis"):
             self.assertIn(fmt, chess_help)
 
     def test_unknown_format_is_rejected(self):
@@ -393,6 +398,49 @@ class DedupTests(unittest.TestCase):
             bed.write_bytes(b"RIFF")
             self.assertEqual(batch.resolve_music(None, False, settings), bed)
             self.assertEqual(batch.resolve_music(bed, False, settings), bed)
+
+
+class AnalysisCommandTests(unittest.TestCase):
+    @unittest.skipUnless(HAVE_CHESS, "python-chess not installed")
+    def test_analysis_command_smoke(self):
+        from unittest import mock
+
+        games = lichess.parse_games(FIXTURE.read_text(encoding="utf-8"))
+        self.assertEqual(len(games), 3)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args = _Args(
+                path=["https://lichess.org/tournament/abc"],
+                output=str(root / "out"),
+                count=2,
+                no_music=True,
+                no_voice=True,
+            )
+            settings = _settings(root)
+            with (
+                mock.patch(
+                    "shorts_clipper.chess.lichess.fetch_tournament",
+                    return_value={"fullName": "Test Arena"},
+                ),
+                mock.patch(
+                    "shorts_clipper.chess.lichess.fetch_tournament_games",
+                    return_value=games,
+                ),
+                mock.patch(
+                    "shorts_clipper.chess.lichess.fetch_team_members",
+                    return_value=[],
+                ),
+                mock.patch(
+                    "shorts_clipper.chess.analysis_format.render_analysis",
+                    side_effect=lambda plan, out, **kw: Path(out).write_bytes(b"") or Path(out),
+                ),
+                mock.patch("shorts_clipper.chess.analysis_format.write_metadata") as write_meta,
+            ):
+                code = cli._cmd_chess_analysis(args, settings, "tournament")
+
+            self.assertEqual(code, 0)
+            self.assertGreater(write_meta.call_count, 0)
 
 
 if __name__ == "__main__":

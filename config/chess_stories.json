@@ -1,0 +1,22 @@
+{
+  "club_name": "Senpai",
+  "lichess_team_url": "https://lichess.org/team/senpai",
+  "whatsapp_url": "https://chat.whatsapp.com/LNaji7VCA0LAp8zLSzJoIW",
+  "hashtags": ["#шахматы", "#истории", "#senpai", "#shorts"],
+  "presenter_asset": "assets/presenter/placeholder.png",
+  "background_color": "#1a1a2e",
+  "text_color": "#ffffff",
+  "accent_color": "#e6be5c",
+  "cta_top": "Вступай в клуб Senpai",
+  "cta_bottom": "Ссылка в описании",
+  "beats": {
+    "hook": "{tournament_name}: кто победил?",
+    "context": "{date} · {format} · {players} игроков · средний рейтинг {avg_rating}",
+    "payoff": "Подиум: 1. {first_name} ({first_rating}), 2. {second_name} ({second_rating}), 3. {third_name} ({third_rating}). {best_moment}",
+    "cta": "Присоединяйся к клубу {club_name}. {whatsapp_url}",
+    "member_hook": "Игрок недели: {username}",
+    "member_context": "Рейтинг: {rating}",
+    "member_payoff": "Участник клубных турниров и историй.",
+    "member_cta": "Подписывайся на истории клуба {club_name}."
+  }
+}

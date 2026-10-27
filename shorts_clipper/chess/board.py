@@ -91,11 +91,14 @@ _TEXT_FONTS = (
     "C:/Windows/Fonts/segoeui.ttf",
     "C:/Windows/Fonts/arial.ttf",
     "C:/Windows/Fonts/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
 )
 _PIECE_FONTS = (
     "C:/Windows/Fonts/seguisym.ttf",
     "C:/Windows/Fonts/DejaVuSans.ttf",
     "C:/Windows/Fonts/arial.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
 )
 _PROBE_CHAR = "\ue123"  # private-use, guaranteed absent from these fonts
 
@@ -214,6 +217,10 @@ class FrameSpec:
     # was before this field existed, so the deciding, opening, endgame and
     # challenge formats are unaffected.
     info: FrameInfo | None = None
+    # Optional call-to-action card rendered full-screen instead of a board.
+    # Tuple is (top_text, bottom_text).  Used for the final frame of tactics
+    # and story formats without needing a separate renderer.
+    cta: tuple[str, str] | None = None
 
 
 def _accent_color(accent: str):
@@ -550,8 +557,40 @@ def _legacy_progress(top_text: str) -> str:
     return f"ход {head.strip()} / {tail.strip()}"
 
 
+def _render_cta(spec: FrameSpec, out_path: str | Path) -> Path:
+    """Render a full-screen call-to-action card."""
+    from PIL import Image, ImageDraw
+
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    img = Image.new("RGB", (FRAME_W, FRAME_H), BOARD_BG)
+    draw = ImageDraw.Draw(img)
+    top, bottom = spec.cta or ("", "")
+
+    draw.text(
+        (FRAME_W // 2, FRAME_H // 2 - 60),
+        top,
+        fill=TEXT_MAIN,
+        font=_first_font(_TEXT_FONTS, 76, "Х"),
+        anchor="mm",
+    )
+    if bottom:
+        draw.text(
+            (FRAME_W // 2, FRAME_H // 2 + 60),
+            bottom,
+            fill=TEXT_DIM,
+            font=_first_font(_TEXT_FONTS, 44, "Х"),
+            anchor="mm",
+        )
+    img.save(out)
+    return out
+
+
 def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
     """Render *spec* to a PNG and return its path."""
+    if spec.cta is not None:
+        return _render_cta(spec, out_path)
+
     from PIL import Image, ImageDraw
 
     board_top = BOARD_TOP

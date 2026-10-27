@@ -1,0 +1,16 @@
+{
+  "club_name": "Senpai",
+  "lichess_team_url": "https://lichess.org/team/senpai",
+  "whatsapp_url": "https://chat.whatsapp.com/LNaji7VCA0LAp8zLSzJoIW",
+  "hashtags": ["#шахматы", "#задача", "#senpai", "#shorts"],
+  "min_player_rating": 1500,
+  "target_player_rating": 2000,
+  "member_min_rating": 1800,
+  "critical_cp": 200,
+  "min_ply": 10,
+  "max_games": 20,
+  "gap_cp_min": 300,
+  "cta_top": "Вступай в клуб Senpai",
+  "cta_bottom": "Ссылка в описании",
+  "team_id": "senpai"
+}

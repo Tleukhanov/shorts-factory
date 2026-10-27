@@ -1,0 +1,39 @@
+[Event "Club Arena"]
+[Site "https://lichess.org/11111111"]
+[White "Grandmaster"]
+[Black "ClubMember"]
+[WhiteElo "2200"]
+[BlackElo "1950"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. O-O Nxe4 5. d4 Nd6 6. Bxc6 dxc6 7. dxe5 Nf5 8. Qxd8+ Kxd8 9. Nc3 Be6 10. Rd1+ Ke8 11. Ng5 Bc8 *
+
+[Event "Club Arena"]
+[Site "https://lichess.org/22222222"]
+[White "NewbieA"]
+[Black "NewbieB"]
+[WhiteElo "1400"]
+[BlackElo "1450"]
+[Result "*"]
+
+1. a4 a5 2. Ra3 Ra6 3. Rh3 Rh6 4. f3 f6 5. Kf2 Kf7 6. Ke3 Ke6 7. d3 d6 8. c3 c6 9. b3 b6 10. g3 g6 *
+
+[Event "Club Arena"]
+[Site "https://lichess.org/33333333"]
+[White "Alice"]
+[Black "ClubMember"]
+[WhiteElo "2100"]
+[BlackElo "1900"]
+[Result "*"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 Ba5 9. h3 Re8 10. dxc5 Bxc3 11. bxc3 *
+
+[Event "Club Arena"]
+[Site "https://lichess.org/44444444"]
+[White "Visitor"]
+[Black "HighRated"]
+[WhiteElo "2300"]
+[BlackElo "2250"]
+[Result "*"]
+
+1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Be2 e5 7. Nb3 Be7 8. O-O O-O 9. Be3 Be6 10. f3 Nbd7 *

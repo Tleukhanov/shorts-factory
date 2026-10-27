@@ -1,0 +1,23 @@
+[Event "Club Arena"]
+[Site "https://lichess.org/11111111"]
+[White "ClubMember"]
+[Black "Visitor"]
+[Result "*"]
+
+1. h4 e5 2. d4 Na6 3. e3 Ba3 4. Qe2 Qg5 5. Bd2 d6 6. Ba5 Kd7 7. e4 b6 8. Nc3 Nf6 9. Qc4 Qh6 10. h5 Ng4 11. Qc5 *
+
+[Event "Club Arena"]
+[Site "https://lichess.org/22222222"]
+[White "Alice"]
+[Black "Bob"]
+[Result "*"]
+
+1. e4 Na6 2. Nc3 f6 3. a3 e5 4. Rb1 Bb4 5. Bb5 h5 6. b3 Kf7 7. Bf1 Qf8 8. g3 Be7 9. Nf3 Nb4 10. Ra1 Rh7 11. Ra2 *
+
+[Event "Club Arena"]
+[Site "https://lichess.org/33333333"]
+[White "Short"]
+[Black "Game"]
+[Result "1-0"]
+
+1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0

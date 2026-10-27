@@ -1,0 +1,13 @@
+{
+  "club_name": "Senpai",
+  "lichess_team_url": "https://lichess.org/team/senpai",
+  "whatsapp_url": "https://chat.whatsapp.com/LNaji7VCA0LAp8zLSzJoIW",
+  "hashtags": ["#шахматы", "#разбор", "#senpai", "#shorts"],
+  "critical_cp": 200,
+  "min_ply": 10,
+  "min_moves": 10,
+  "max_games": 50,
+  "cta_top": "Вступай в клуб Senpai",
+  "cta_bottom": "Ссылка в описании",
+  "team_id": "senpai"
+}

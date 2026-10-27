@@ -3,6 +3,45 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Tactical-puzzle short format (`shorts-clipper chess --format tactic`).**
+  - Curated Lichess puzzle DB as the source, with a strict quality gate so only
+    human-tested, interesting tactics are rendered (no boring engine-only positions).
+  - Voiceover via Piper TTS: hook → thinking pause → reveal → club CTA.
+  - Auto-generated title/description files with club links and hashtags.
+  - Used-puzzle tracking so the factory does not repeat the same puzzle.
+- New modules: `shorts_clipper/chess/puzzle_db.py`, `shorts_clipper/chess/tactics.py`.
+- New config: `config/chess_tactics.json` for quality-gate thresholds and CTA links.
+- **Real-game analysis format (`shorts-clipper chess --format tournament`).**
+  - Fetches tournament games and metadata from Lichess.
+  - Picks the worst decisive moment per game, ranks them, and renders with voice + CTA.
+  - Configurable sampling (`--max-games`) so large tournaments render in reasonable time.
+  - Used-moment deduplication via the existing `chess_used.json` store.
+- New modules: `shorts_clipper/chess/lichess.py`, `shorts_clipper/chess/analysis_format.py`.
+- New config: `config/chess_analysis.json`.
+- **Club challenge format (`shorts-clipper chess --format club-challenge`).**
+  - Mines puzzle-like positions from real tournament games (one clearly best move).
+  - Filters by player rating, prefers strong club members, dedups by position+move.
+  - Renders the classic "find the move" short with voice + CTA.
+- New module: `shorts_clipper/chess/challenge_format.py`.
+- New config: `config/chess_challenges.json`.
+- **Human stories format (`shorts-clipper chess --format story`).**
+  - Auto-generates a tournament recap short from Lichess metadata (name, date, podium, stats).
+  - Supports custom JSON story files for member-of-the-week / behind-the-scenes content.
+  - Placeholder presenter avatar in `assets/presenter/placeholder.png`; replace with real assets
+    when available.
+- New module: `shorts_clipper/chess/stories.py`.
+- New config: `config/chess_stories.json`.
+- Linux font paths in `shorts_clipper/chess/board.py` so Cyrillic and chess glyphs render
+  out of the box on Debian/Ubuntu systems.
+
+### Changed
+- Added `zstandard`, `edge-tts`, and `piper-tts` to the `[chess]` optional dependencies.
+- Added `imageio-ffmpeg` to the `[dev]` optional dependencies for test environments
+  without a system ffmpeg.
+
 ## [0.2.0] - 2026-09-16
 
 ### Fixed

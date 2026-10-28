@@ -55,4 +55,10 @@ testpaths = ["tests"]
 include = ["shorts_clipper*"]
 
 [tool.setuptools.package-data]
-shorts_clipper = ["ui/index.html", "ui/js/*.js", "ui/css/*.css"]
+shorts_clipper = [
+  "ui/index.html",
+  "ui/js/*.js",
+  "ui/css/*.css",
+  "chess/assets/cburnett/*.png",
+  "chess/assets/cburnett_svg/*.svg",
+]

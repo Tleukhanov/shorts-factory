@@ -5,12 +5,14 @@ drawn here rather than sourced, which keeps the pipeline licence-free,
 deterministic, and free of anyone else's screen recording.
 
 Rendering is PIL rather than SVG because nothing in the dependency set can
-rasterise SVG (no cairosvg/svglib) and PIL gives direct control over the 1080x1920
+rasterise SVG at runtime and PIL gives direct control over the 1080x1920
 vertical frame: the board sits high, a header sits above it and an information
 band below, so a 9:16 frame carries the position and the words about it at the
 same time instead of only the board.
 
-Only the unicode chess glyphs are used, so no image assets ship with the repo.
+The pieces are the cburnett set (the default Lichess set), pre-rendered to PNG
+from the CC BY-SA 3.0 SVGs in ``assets/cburnett_svg``.  The unicode glyph path
+stays as a fallback for installations that strip the PNG assets.
 """
 
 from __future__ import annotations
@@ -71,12 +73,21 @@ _MOVE_STROKE = 2
 LIGHT_SQUARE = (240, 217, 181)  # #f0d9b5
 DARK_SQUARE = (181, 136, 99)  # #b58863
 BOARD_EDGE = (120, 90, 68)
+BOARD_FRAME = (138, 111, 77)  # #8a6f4d, the frame used by the trainer
+BOARD_FRAME_WIDTH = 10
 BOARD_BG = (18, 18, 20)
 TEXT_MAIN = (245, 245, 245)
 TEXT_DIM = (150, 150, 155)
 ACCENT_BAD = (214, 74, 62)
 ACCENT_GOOD = (96, 178, 116)
-HIGHLIGHT = (226, 190, 92)
+HIGHLIGHT = (205, 210, 106)  # #cdd26a, the trainer's last-move highlight
+# Coordinates are drawn in the opposite square colour, exactly like the trainer.
+COORD_ON_LIGHT = (181, 136, 99)
+COORD_ON_DARK = (240, 217, 181)
+
+# cburnett is the default Lichess piece set.  The PNGs are pre-rendered from the
+# CC BY-SA 3.0 SVGs that ship next to them; see assets/cburnett_svg/README.md.
+_PIECE_DIR = Path(__file__).with_name("assets") / "cburnett"
 
 PIECE_GLYPHS = {
     "K": "♔", "Q": "♕", "R": "♖", "B": "♗", "N": "♘", "P": "♙",
@@ -124,6 +135,24 @@ def _covers(font, char: str) -> bool:
         return bytes(mask) != bytes(ref)
     except Exception:
         return False
+
+
+@functools.lru_cache(maxsize=64)
+def _piece_image(symbol: str, size: int):
+    """Load and scale a cburnett piece PNG, or ``None`` when it is missing."""
+    try:
+        from PIL import Image
+    except Exception:
+        return None
+    path = _PIECE_DIR / f"{symbol}.png"
+    if not path.is_file():
+        return None
+    try:
+        with Image.open(path) as img:
+            return img.convert("RGBA").resize((size, size), Image.LANCZOS)
+    except Exception:
+        log.debug("could not load piece image %s", path, exc_info=True)
+        return None
 
 
 @functools.lru_cache(maxsize=256)
@@ -628,6 +657,17 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
     step = BOARD / 8.0
     highlight = {s.lower() for s in spec.highlight_squares}
 
+    # A thin frame around the board, like the trainer's wooden edge.
+    draw.rectangle(
+        [
+            board_left - BOARD_FRAME_WIDTH,
+            board_top - BOARD_FRAME_WIDTH,
+            board_left + BOARD + BOARD_FRAME_WIDTH,
+            board_top + BOARD + BOARD_FRAME_WIDTH,
+        ],
+        fill=BOARD_FRAME,
+    )
+
     for row in range(8):
         for col in range(8):
             file = chr(ord("a") + col)
@@ -641,6 +681,35 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
                 fill = HIGHLIGHT
             draw.rectangle([x0, y0, x0 + step, y0 + step], fill=fill)
 
+    # Coordinates live in the square corner, in the opposite square colour, so
+    # they stay readable without a separate gutter.
+    coord_font = _first_font(_TEXT_FONTS, max(18, int(step * 0.17)), "1")
+    for row in range(8):
+        rank = 8 - row
+        y0 = board_top + row * step
+        light = row % 2 == 1
+        colour = COORD_ON_LIGHT if light else COORD_ON_DARK
+        draw.text(
+            (board_left + 7, y0 + step - 8),
+            str(rank),
+            fill=colour,
+            font=coord_font,
+            anchor="ls",
+        )
+    for col in range(8):
+        file = chr(ord("a") + col)
+        x0 = board_left + col * step
+        y0 = board_top + 7 * step
+        light = (7 + col) % 2 == 1
+        colour = COORD_ON_LIGHT if light else COORD_ON_DARK
+        draw.text(
+            (x0 + step - 7, y0 + step - 6),
+            file,
+            fill=colour,
+            font=coord_font,
+            anchor="rs",
+        )
+
     try:
         import chess
 
@@ -650,31 +719,30 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
         log.debug("FEN parse failed while drawing", exc_info=True)
         pieces = {}
 
-# 0.82 left the pieces floating in their squares with a visible margin, which is
-    # much of what made them read as clipart pasted onto a board. lichess and
-    # chess.com fill roughly 92% of the square height.
+    # 0.92 fills roughly the same share of the square as Lichess/chess.com.
     glyph_font = _first_font(_PIECE_FONTS, int(step * 0.92), "\u2654")
-    moved = {s.lower() for s in spec.highlight_squares}
+    piece_size = int(step * 0.92)
     for (file, rank), (cx, cy) in _square_centres(BOARD).items():
         piece = pieces.get(chess_square(file, rank)) if _chess_ok() else None
         if piece is None:
             continue
-        glyph = PIECE_GLYPHS[piece.symbol()]
         px = board_left + cx
         py = board_top + cy
-        # Standard colours: white pieces are outline glyphs and need a dark edge
-        # to read on a light square, black pieces are filled and need none.
-        # Colouring whole sides instead would make "which side is which" a guess.
+        image = _piece_image(piece.symbol(), piece_size)
+        if image is not None:
+            img.paste(
+                image,
+                (int(round(px - piece_size / 2)), int(round(py - piece_size / 2))),
+                image,
+            )
+            continue
+        # Fallback for installations without the PNG assets.
+        glyph = PIECE_GLYPHS[piece.symbol()]
         if piece.color:
             draw.text((px, py + step * 0.02), glyph, fill=(252, 250, 246),
                       font=glyph_font, anchor="mm", stroke_width=5, stroke_fill=(40, 38, 36))
         else:
             draw.text((px, py + step * 0.02), glyph, fill=(38, 36, 34),
-                      font=glyph_font, anchor="mm")
-        # The square the blundered piece landed on keeps the accent, so the eye
-        # goes to the move rather than to a whole army.
-        if f"{file}{rank}" in moved and piece.color:
-            draw.text((px, py + step * 0.02), glyph, fill=ACCENT_BAD,
                       font=glyph_font, anchor="mm")
 
     if spec.arrow:

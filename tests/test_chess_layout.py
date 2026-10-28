@@ -32,6 +32,7 @@ from shorts_clipper.chess.board import (
     ACCENT_GOOD,
     BOARD,
     BOARD_BG,
+    BOARD_FRAME_WIDTH,
     BOARD_TOP,
     FRAME_H,
     FRAME_W,
@@ -203,12 +204,10 @@ class RenderTests(unittest.TestCase):
             span = _board_span(img)
             self.assertIsNotNone(span, "no board drawn")
             top, bottom, left, right = span
-            self.assertEqual(top, BOARD_TOP)
-            self.assertEqual(bottom, BOARD_TOP + BOARD)
-            self.assertEqual(left, (FRAME_W - BOARD) // 2)
-            # PIL strokes the outline on both edges, so the box is one pixel
-            # wider than the squares inside it.
-            self.assertEqual(right - left, BOARD)
+            self.assertEqual(top, BOARD_TOP - BOARD_FRAME_WIDTH)
+            self.assertEqual(bottom, BOARD_TOP + BOARD + BOARD_FRAME_WIDTH)
+            self.assertEqual(left, (FRAME_W - BOARD) // 2 - BOARD_FRAME_WIDTH)
+            self.assertEqual(right - left + 1, BOARD + 2 * BOARD_FRAME_WIDTH + 1)
 
     def test_populated_band_leaves_no_hole_bigger_than_the_limit(self):
         with tempfile.TemporaryDirectory() as tmp:

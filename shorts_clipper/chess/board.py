@@ -84,6 +84,9 @@ HIGHLIGHT = (205, 210, 106)  # #cdd26a, the trainer's last-move highlight
 # Coordinates are drawn in the opposite square colour, exactly like the trainer.
 COORD_ON_LIGHT = (181, 136, 99)
 COORD_ON_DARK = (240, 217, 181)
+# Lichess-style move arrow: green, semi-transparent, thick shaft, solid head.
+ARROW_COLOR = (21, 120, 27)  # #15781b
+ARROW_ALPHA = 200
 
 # cburnett is the default Lichess piece set.  The PNGs are pre-rendered from the
 # CC BY-SA 3.0 SVGs that ship next to them; see assets/cburnett_svg/README.md.
@@ -138,13 +141,13 @@ def _covers(font, char: str) -> bool:
 
 
 @functools.lru_cache(maxsize=64)
-def _piece_image(symbol: str, size: int):
+def _piece_image(filename: str, size: int):
     """Load and scale a cburnett piece PNG, or ``None`` when it is missing."""
     try:
         from PIL import Image
     except Exception:
         return None
-    path = _PIECE_DIR / f"{symbol}.png"
+    path = _PIECE_DIR / filename
     if not path.is_file():
         return None
     try:
@@ -250,6 +253,13 @@ class FrameSpec:
     # Tuple is (top_text, bottom_text).  Used for the final frame of tactics
     # and story formats without needing a separate renderer.
     cta: tuple[str, str] | None = None
+    # Sliding-piece animation: (piece_symbol, from_square, to_square, progress).
+    # When set, the named piece is drawn at an interpolated position and its
+    # source/destination squares are suppressed (see ``hidden_squares``).
+    moving: tuple[str, str, str, float] | None = None
+    # Squares whose pieces are not drawn on this frame.  Used by the animation
+    # so the moving piece does not appear twice.
+    hidden_squares: tuple[str, ...] = ()
 
 
 def _accent_color(accent: str):
@@ -722,28 +732,47 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
     # 0.92 fills roughly the same share of the square as Lichess/chess.com.
     glyph_font = _first_font(_PIECE_FONTS, int(step * 0.92), "\u2654")
     piece_size = int(step * 0.92)
-    for (file, rank), (cx, cy) in _square_centres(BOARD).items():
-        piece = pieces.get(chess_square(file, rank)) if _chess_ok() else None
-        if piece is None:
-            continue
-        px = board_left + cx
-        py = board_top + cy
-        image = _piece_image(piece.symbol(), piece_size)
+    hidden = {s.lower() for s in spec.hidden_squares}
+
+    def _draw_piece(px: float, py: float, symbol: str, white: bool) -> None:
+        filename = f"w{symbol}.png" if white else f"b{symbol.upper()}.png"
+        image = _piece_image(filename, piece_size)
         if image is not None:
             img.paste(
                 image,
                 (int(round(px - piece_size / 2)), int(round(py - piece_size / 2))),
                 image,
             )
-            continue
-        # Fallback for installations without the PNG assets.
-        glyph = PIECE_GLYPHS[piece.symbol()]
-        if piece.color:
+            return
+        glyph = PIECE_GLYPHS[symbol]
+        if white:
             draw.text((px, py + step * 0.02), glyph, fill=(252, 250, 246),
                       font=glyph_font, anchor="mm", stroke_width=5, stroke_fill=(40, 38, 36))
         else:
             draw.text((px, py + step * 0.02), glyph, fill=(38, 36, 34),
                       font=glyph_font, anchor="mm")
+
+    for (file, rank), (cx, cy) in _square_centres(BOARD).items():
+        square = f"{file}{rank}"
+        if square in hidden:
+            continue
+        piece = pieces.get(chess_square(file, rank)) if _chess_ok() else None
+        if piece is None:
+            continue
+        _draw_piece(board_left + cx, board_top + cy, piece.symbol(), bool(piece.color))
+
+    if spec.moving is not None:
+        try:
+            symbol, src, dst, progress = spec.moving
+            centres = _square_centres(BOARD)
+            a = centres[(src[0], int(src[1]))]
+            b = centres[(dst[0], int(dst[1]))]
+            t = max(0.0, min(1.0, float(progress)))
+            px = board_left + a[0] + (b[0] - a[0]) * t
+            py = board_top + a[1] + (b[1] - a[1]) * t
+            _draw_piece(px, py, symbol, symbol.isupper())
+        except Exception:
+            log.debug("Moving piece skipped", exc_info=True)
 
     if spec.arrow:
         centres = _square_centres(BOARD)
@@ -752,8 +781,26 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
             b = centres[(spec.arrow[1][0], int(spec.arrow[1][1]))]
             p1 = (board_left + a[0], board_top + a[1])
             p2 = (board_left + b[0], board_top + b[1])
-            draw.line([p1, p2], fill=ACCENT_BAD, width=14)
-            draw.ellipse([p2[0] - 16, p2[1] - 16, p2[0] + 16, p2[1] + 16], fill=ACCENT_BAD)
+            dx, dy = p2[0] - p1[0], p2[1] - p1[1]
+            length = (dx * dx + dy * dy) ** 0.5
+            if length > 1.0:
+                ux, uy = dx / length, dy / length
+                head_len = 38.0
+                head_half = 22.0
+                base = (p2[0] - ux * head_len, p2[1] - uy * head_len)
+                left = (base[0] - uy * head_half, base[1] + ux * head_half)
+                right = (base[0] + uy * head_half, base[1] - ux * head_half)
+                overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+                odraw = ImageDraw.Draw(overlay)
+                colour = (*ARROW_COLOR, ARROW_ALPHA)
+                odraw.line([p1, base], fill=colour, width=18)
+                odraw.ellipse(
+                    [p1[0] - 9, p1[1] - 9, p1[0] + 9, p1[1] + 9],
+                    fill=colour,
+                )
+                odraw.polygon([p2, left, right], fill=colour)
+                img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+                draw = ImageDraw.Draw(img)
         except Exception:
             log.debug("Arrow skipped", exc_info=True)
 

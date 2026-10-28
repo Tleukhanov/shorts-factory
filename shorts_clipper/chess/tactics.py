@@ -24,7 +24,6 @@ from shorts_clipper.utils.ffmpeg_path import ffmpeg_path
 log = logging.getLogger(__name__)
 
 THINK_SECONDS = 6.5
-AFTER_REVEAL_SECONDS = 1.5
 CTA_SECONDS = 3.0
 
 
@@ -68,39 +67,105 @@ def plan_tactic(
     cta_top: str = "Вступай в клуб Senpai",
     cta_bottom: str = "Ссылка в описании",
 ) -> TacticRenderPlan:
-    """Build frame plan and voice script for a tactic short."""
+    """Build frame plan and voice script for a tactic short.
+
+    The whole solution line is shown, not just the first move: a deflection
+    puzzle that ends in Boden's mate is only satisfying if the viewer sees the
+    mate.  Solver moves get the accent, opponent replies stay neutral, and the
+    final position is held long enough to read.
+    """
+    try:
+        import chess
+    except ImportError:
+        return TacticRenderPlan(
+            puzzle=puzzle,
+            clip_plan=ChessClipPlan(frames=[]),
+            voice_lines=[],
+            frame_starts=[],
+            cta_top=cta_top,
+            cta_bottom=cta_bottom,
+        )
+
     color = puzzle.solver_color()
     side = _side_label(color)
-    first_solution = puzzle.solution_moves[0]
-    san = _move_san(puzzle, first_solution)
-    src = first_solution[:2]
-    dst = first_solution[2:4]
     theme = puzzle.theme_label()
-
-    hook_voice = "Найдёшь здесь тактику?"
-    reveal_voice = f"Есть! {theme} — {san}."
-    cta_voice = "Больше тактики — в клубе Senpai."
+    start_fen = puzzle.puzzle_fen() or puzzle.fen
+    board = chess.Board(start_fen)
 
     question = FrameSpec(
-        fen=puzzle.puzzle_fen() or puzzle.fen,
+        fen=start_fen,
         top_text="Найдёшь здесь тактику?",
         bottom_text=side,
         accent="neutral",
     )
-    reveal = FrameSpec(
-        fen=puzzle.puzzle_fen() or puzzle.fen,
-        top_text=theme.capitalize(),
-        bottom_text=san,
+    frames: list[FrameSpec] = [question]
+    holds: list[float] = [THINK_SECONDS]
+    voice_lines: list[str | None] = ["Найдёшь здесь тактику?"]
+
+    first_san = ""
+    last_san = ""
+    landing_indices: list[int] = []
+    for index, uci in enumerate(puzzle.solution_moves):
+        move = chess.Move.from_uci(uci)
+        san = board.san(move)
+        if index == 0:
+            first_san = san
+        last_san = san
+        src = chess.square_name(move.from_square)
+        dst = chess.square_name(move.to_square)
+        solver_move = index % 2 == 0
+        top = theme.capitalize() if solver_move else "Ответ соперника"
+        before_fen = board.fen()
+        piece = board.piece_at(move.from_square)
+        symbol = piece.symbol() if piece is not None else "p"
+        captured = dst if board.piece_at(move.to_square) else None
+        hidden = tuple(
+            dict.fromkeys(s for s in (src, dst, captured) if s)
+        )
+
+        # Six short frames make the piece slide rather than teleport.  The
+        # arrow only appears after the piece has landed, like Lichess.
+        for step in range(1, 7):
+            frames.append(
+                FrameSpec(
+                    fen=before_fen,
+                    top_text=top,
+                    bottom_text=san,
+                    accent="neutral",
+                    moving=(symbol, src, dst, step / 6.0),
+                    hidden_squares=hidden,
+                )
+            )
+            holds.append(0.05)
+            voice_lines.append(None)
+
+        board.push(move)
+        frames.append(
+            FrameSpec(
+                fen=board.fen(),
+                top_text=top,
+                bottom_text=san,
+                accent="good" if solver_move else "neutral",
+                arrow=(src, dst),
+                highlight_squares=(src, dst),
+            )
+        )
+        holds.append(1.5 if solver_move else 1.2)
+        voice_lines.append(None)
+        landing_indices.append(len(frames) - 1)
+
+    # Position after the last move: the mate (or the winning position) itself.
+    is_mate = board.is_checkmate()
+    final = FrameSpec(
+        fen=board.fen(),
+        top_text="Мат!" if is_mate else "Позиция выиграна",
+        bottom_text=f"Мат — {last_san}" if is_mate else last_san,
         accent="good",
-        arrow=(src, dst),
-        highlight_squares=(src, dst),
     )
-    after = FrameSpec(
-        fen=_after_fen(puzzle) or (puzzle.puzzle_fen() or puzzle.fen),
-        top_text=theme.capitalize(),
-        bottom_text="Такие задачи — каждый день",
-        accent="good",
-    )
+    frames.append(final)
+    holds.append(2.6)
+    voice_lines.append(None)
+
     cta = FrameSpec(
         fen="8/8/8/8/8/8/8/8 w - - 0 1",
         top_text="",
@@ -108,14 +173,21 @@ def plan_tactic(
         accent="neutral",
         cta=(cta_top, cta_bottom),
     )
+    frames.append(cta)
+    holds.append(CTA_SECONDS)
+    voice_lines.append("Больше тактики — в клубе Senpai.")
 
-    clip_plan = ChessClipPlan(
-        frames=[question, reveal, after, cta],
-        holds=[THINK_SECONDS, 2.5, AFTER_REVEAL_SECONDS, CTA_SECONDS],
-    )
+    # The first solution move is the hook; the final solver move gets the
+    # second voice line, so the mate is named out loud.  Both are attached to
+    # the frame where the piece lands, not to a mid-slide animation frame.
+    if first_san and landing_indices:
+        voice_lines[landing_indices[0]] = f"Есть! {theme} — {first_san}."
+    if last_san and landing_indices:
+        voice_lines[landing_indices[-1]] = (
+            f"И мат — {last_san}!" if is_mate else f"И победа — {last_san}."
+        )
 
-    # Voice lines align with frame starts.
-    voice_lines = [hook_voice, reveal_voice, None, cta_voice]
+    clip_plan = ChessClipPlan(frames=frames, holds=holds)
     frame_starts = _frame_starts(clip_plan)
     return TacticRenderPlan(
         puzzle=puzzle,
@@ -125,24 +197,6 @@ def plan_tactic(
         cta_top=cta_top,
         cta_bottom=cta_bottom,
     )
-
-
-def _after_fen(puzzle: puzzle_db.Puzzle) -> str | None:
-    """FEN after the first solution move and its best reply (if any)."""
-    try:
-        import chess
-
-        board = chess.Board(puzzle.puzzle_fen())
-        moves = puzzle.solution_moves
-        if not moves:
-            return None
-        board.push(chess.Move.from_uci(moves[0]))
-        if len(moves) > 1:
-            board.push(chess.Move.from_uci(moves[1]))
-        return board.fen()
-    except Exception:
-        log.debug("could not build after-FEN", exc_info=True)
-        return None
 
 
 def _frame_starts(plan: ChessClipPlan) -> list[float]:
@@ -251,14 +305,13 @@ def _adjust_holds_for_voice(
         return list(plan.clip_plan.holds or []), list(plan.frame_starts)
 
     new_holds = list(plan.clip_plan.holds)
-    # Question frame: give the viewer 5 seconds to think after the hook finishes.
-    if durations[0]:
-        new_holds[0] = max(new_holds[0], durations[0] + 5.0)
-    # Reveal and CTA frames: small padding after the voice line.
-    if durations[1]:
-        new_holds[1] = max(new_holds[1], durations[1] + 0.8)
-    if durations[3]:
-        new_holds[3] = max(new_holds[3], durations[3] + 0.8)
+    for index, duration in enumerate(durations):
+        if not duration:
+            continue
+        # The question frame needs the viewer's thinking time on top of the
+        # hook; every other voiced beat just needs a little breathing room.
+        padding = 5.0 if index == 0 else 0.8
+        new_holds[index] = max(new_holds[index], duration + padding)
 
     starts = [0.0]
     for h in new_holds[:-1]:
@@ -274,7 +327,7 @@ def write_metadata(
     """Write title/description file next to the rendered clip."""
     out = Path(out_path)
     meta_path = out.with_suffix(".txt")
-    best_move = plan.voice_lines[1] or ""
+    best_move = next((line for line in plan.voice_lines[1:] if line), "")
     lines = [
         f"Найдёшь тактику? | Шахматный клуб {cfg.club_name}",
         "",

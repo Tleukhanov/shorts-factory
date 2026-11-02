@@ -38,8 +38,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Grayscale board with red wrong-move highlights, green answer, and big meme headlines.
   - Engine-generated plausible wrong moves ("НЕ ТОТ ХОД" / "МИМО").
   - Full solution line including the mate, fast slide animation, beat-synced cuts.
+  - Zoom punches on wrong moves and the answer; synthesized SFX (buzz, ding, whoosh, impact).
   - Music-driven, no voiceover; real phonk track is supplied via `--music` or `data/music/`.
-  - New module `shorts_clipper/chess/drama.py`, config `config/chess_drama.json`.
+  - New modules `shorts_clipper/chess/drama.py`, `shorts_clipper/chess/sfx.py`,
+    config `config/chess_drama.json`.
 - Board renderer now supports `board_style="mono"`, `arrow_color`, and large `headline`
   overlays for the drama format.
 - Linux font paths in `shorts_clipper/chess/board.py` so Cyrillic and chess glyphs render

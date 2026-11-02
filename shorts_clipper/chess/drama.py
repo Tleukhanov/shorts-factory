@@ -26,8 +26,14 @@ from pathlib import Path
 from shorts_clipper.chess import beats, engine, puzzle_db
 from shorts_clipper.chess.board import FrameSpec
 from shorts_clipper.chess.clip import ChessClipPlan, add_bed, render_clip
+from shorts_clipper.utils.ffmpeg_path import ffmpeg_path
 
 log = logging.getLogger(__name__)
+
+# The drama clip has no narration, so the music is the voice of the format.  It
+# sits well above the tactic bed (0.08) and still leaves the SFX room to cut
+# through, which is what the punches are for.
+MUSIC_VOLUME = 0.24
 
 # Frame holds.  The hook is the only slow beat (the viewer has to read the
 # position); wrong moves and slide frames are fast cuts; the mate and the CTA
@@ -99,6 +105,14 @@ class DramaRenderPlan:
     solution_sans: list[str]
     frame_starts: list[float]
     is_mate: bool = False
+    # Frame indices for the SFX cues.  Stored at plan time because the plan
+    # already knows which beat is a trap, the reveal, the start of a move block
+    # and the mate; re-deriving them from the rendered frames later would make
+    # the audio depend on visual details such as a headline string.
+    wrong_frame_indices: tuple[int, ...] = ()
+    answer_frame_index: int = -1
+    move_block_starts: tuple[int, ...] = ()
+    mate_frame_index: int = -1
 
 
 def _side_label(color: str | None) -> str:
@@ -294,6 +308,7 @@ def plan_drama(
 
     frames: list[FrameSpec] = []
     holds: list[float] = []
+    wrong_frame_indices: list[int] = []
 
     # Beat 1: the hook.  The position is untouched; no arrow, no highlight.
     frames.append(
@@ -305,6 +320,7 @@ def plan_drama(
             board_style=cfg.board_style,
             headline=cfg.hook_label,
             headline_color="bad",
+            zoom=1.0,
         )
     )
     holds.append(HOOK_SECONDS)
@@ -340,8 +356,10 @@ def plan_drama(
                 arrow_color="bad",
                 headline=label,
                 headline_color="bad",
+                zoom=1.06,
             )
         )
+        wrong_frame_indices.append(len(frames) - 1)
         holds.append(WRONG_SECONDS)
 
     if not puzzle.solution_moves:
@@ -370,14 +388,17 @@ def plan_drama(
             arrow_color="good",
             headline=cfg.answer_label,
             headline_color="good",
+            zoom=1.08,
         )
     )
+    answer_frame_index = len(frames) - 1
     holds.append(ANSWER_SECONDS)
 
     # Beat 4: the full solution line, every move green -- the line is forced,
     # and the last move is the mate the clip has been promising.
     line_board = board.copy(stack=False)
     solution_sans: list[str] = []
+    move_block_starts: list[int] = []
     for uci in puzzle.solution_moves:
         try:
             move = chess.Move.from_uci(uci)
@@ -395,6 +416,7 @@ def plan_drama(
         captured = dst if line_board.is_capture(move) else None
         hidden = tuple(dict.fromkeys(s for s in (src, dst, captured) if s))
 
+        move_block_starts.append(len(frames))
         frames.extend(
             _slide_frames(
                 fen=before_fen,
@@ -409,6 +431,9 @@ def plan_drama(
         holds.extend([SLIDE_SECONDS] * SLIDE_STEPS)
 
         line_board.push(move)
+        # Alternate the landing punch so the line pulses instead of sitting at
+        # one zoom for every move, which would read as a static overlay.
+        landing_zoom = 1.02 if (len(solution_sans) - 1) % 2 == 0 else 1.0
         frames.append(
             FrameSpec(
                 fen=line_board.fen(),
@@ -419,6 +444,7 @@ def plan_drama(
                 arrow=(src, dst),
                 board_style=cfg.board_style,
                 arrow_color="good",
+                zoom=landing_zoom,
             )
         )
         holds.append(LANDING_SECONDS)
@@ -439,8 +465,10 @@ def plan_drama(
             board_style=cfg.board_style,
             headline=final_headline,
             headline_color="good",
+            zoom=1.05,
         )
     )
+    mate_frame_index = len(frames) - 1 if is_mate else -1
     holds.append(FINAL_SECONDS)
 
     # Beat 6: the club card.
@@ -452,6 +480,7 @@ def plan_drama(
             accent="neutral",
             board_style=cfg.board_style,
             cta=(cfg.cta_top, cfg.cta_bottom),
+            zoom=1.0,
         )
     )
     holds.append(CTA_SECONDS)
@@ -475,6 +504,10 @@ def plan_drama(
         solution_sans=solution_sans,
         frame_starts=_frame_starts(clip_plan),
         is_mate=is_mate,
+        wrong_frame_indices=tuple(wrong_frame_indices),
+        answer_frame_index=answer_frame_index,
+        move_block_starts=tuple(move_block_starts),
+        mate_frame_index=mate_frame_index,
     )
 
 
@@ -511,13 +544,79 @@ def write_metadata(
     return meta_path
 
 
+def _sfx_events(plan: DramaRenderPlan) -> list[tuple[str, float]]:
+    """``(cue name, seconds)`` for every sound the planned edit should play.
+
+    The indices come from :func:`plan_drama`; the bounds check means a hand-built
+    plan without cue metadata simply renders without sound instead of raising.
+    """
+    starts = plan.frame_starts
+    events: list[tuple[str, float]] = []
+
+    def add(name: str, index: int) -> None:
+        if 0 <= index < len(starts):
+            events.append((name, starts[index]))
+
+    for index in plan.wrong_frame_indices:
+        add("wrong_buzz", index)
+    add("correct_ding", plan.answer_frame_index)
+    for index in plan.move_block_starts:
+        add("whoosh", index)
+    if plan.is_mate:
+        add("impact", plan.mate_frame_index)
+    events.sort(key=lambda item: item[1])
+    return events
+
+
+def _mix_sfx(silent: Path, plan: DramaRenderPlan, work: Path) -> Path:
+    """Mux synthesized SFX over *silent*, or return it unchanged on any failure.
+
+    SFX is a finishing touch: a missing numpy, a missing ffmpeg filter or a bad
+    cue must never cost the clip its video and music.
+    """
+    from shorts_clipper.chess import sfx as sfx_module
+    from shorts_clipper.chess import tactics
+
+    events = _sfx_events(plan)
+    if not events:
+        return silent
+    paths = sfx_module.synthesize_sfx(work / "sfx")
+    cue_paths = [paths[name] for name, _ in events]
+    cue_starts = [start for _, start in events]
+    track = tactics._build_voice_track(
+        cue_paths,
+        cue_starts,
+        float(plan.clip_plan.duration),
+        work / "sfx.wav",
+    )
+    if track is None:
+        return silent
+
+    mixed = work / "with_sfx.mp4"
+    cmd = [
+        ffmpeg_path(), "-y", "-v", "error",
+        "-i", str(silent),
+        "-i", str(track),
+        "-map", "0:v", "-map", "1:a",
+        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+        "-shortest",
+        str(mixed),
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    if proc.returncode != 0:
+        log.warning("SFX mux failed: %s", (proc.stderr or "")[-600:])
+        return silent
+    return mixed
+
+
 def render_drama(
     plan: DramaRenderPlan,
     out_path: str | Path,
     music_path: str | Path | None = None,
-    volume: float = 0.16,
+    volume: float = MUSIC_VOLUME,
+    sfx: bool = True,
 ) -> Path | None:
-    """Render *plan* to *out_path* with an optional music bed; no TTS voice."""
+    """Render *plan* to *out_path* with SFX, an optional bed, and no TTS voice."""
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     if not plan.clip_plan.frames:
@@ -529,11 +628,18 @@ def render_drama(
         silent = render_clip(plan.clip_plan, work / "silent.mp4", work_dir=work)
         if silent is None:
             return None
+        voiced = silent
+        if sfx:
+            try:
+                voiced = _mix_sfx(silent, plan, work)
+            except Exception:
+                log.warning("SFX skipped", exc_info=True)
+                voiced = silent
         bed = Path(music_path) if music_path is not None else None
         if bed is not None and bed.is_file():
-            mixed = add_bed(silent, bed, out, volume=volume)
-            return mixed if mixed.is_file() else silent
-        return add_bed(silent, None, out)
+            mixed = add_bed(voiced, bed, out, volume=volume)
+            return mixed if mixed.is_file() else voiced
+        return add_bed(voiced, None, out)
 
 
 def music_candidates(music_dir: str | Path = DEFAULT_MUSIC_DIR) -> list[Path]:

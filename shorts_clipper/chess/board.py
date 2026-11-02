@@ -105,6 +105,11 @@ MONO_COORD_ON_DARK = (205, 205, 205)
 # way the information band fits its hook.
 HEADLINE_SIZES = (120, 112, 104, 96, 88, 80, 72)
 HEADLINE_STROKE = 9
+# Punch-in bounds for the drama edit.  Past 1.12 the headline and the info band
+# lose too many pixels to stay legible on a phone, and below 1.0 there is no
+# punch at all.
+ZOOM_MIN = 1.0
+ZOOM_MAX = 1.12
 
 # cburnett is the default Lichess piece set.  The PNGs are pre-rendered from the
 # CC BY-SA 3.0 SVGs that ship next to them; see assets/cburnett_svg/README.md.
@@ -289,6 +294,14 @@ class FrameSpec:
     # Optional: None leaves the frame exactly as before.
     headline: str | None = None
     headline_color: str = "bad"  # "bad" | "good" | "neutral"
+    # Camera punch: 1.0 is no zoom.  Values above 1 crop a smaller window around
+    # ``zoom_center`` and scale it back up, which is what makes the drama edit's
+    # wrong-move and answer beats land.  Clamped to ZOOM_MAX when rendered so a
+    # stray config value cannot turn the board into unreadable pixels.
+    zoom: float = 1.0
+    # Pixel centre of the punch, defaulting to the board centre.  Only the board
+    # is zoomed for CTA frames, which return before this is ever read.
+    zoom_center: tuple[float, float] | None = None
 
 
 def _accent_color(accent: str):
@@ -694,6 +707,32 @@ def _render_cta(spec: FrameSpec, out_path: str | Path) -> Path:
     return out
 
 
+def _apply_zoom(spec: FrameSpec, img):
+    """Punch the frame in around ``spec.zoom_center``, clamped to :data:`ZOOM_MAX`.
+
+    A crop-and-scale rather than a redraw: the board is already rendered at the
+    final size, and scaling the finished pixels keeps the highlights and arrows
+    in the same place the viewer just saw them.  The crop window is clamped
+    inside the frame so an off-centre punch never leaves a black edge.
+    """
+    from PIL import Image
+
+    zoom = max(ZOOM_MIN, min(ZOOM_MAX, float(spec.zoom)))
+    if zoom == ZOOM_MIN:
+        return img
+
+    centre = spec.zoom_center or (FRAME_W / 2, BOARD_TOP + BOARD / 2)
+    crop_w = int(round(FRAME_W / zoom))
+    crop_h = int(round(FRAME_H / zoom))
+    left = int(round(centre[0] - crop_w / 2))
+    top = int(round(centre[1] - crop_h / 2))
+    left = max(0, min(FRAME_W - crop_w, left))
+    top = max(0, min(FRAME_H - crop_h, top))
+    return img.crop((left, top, left + crop_w, top + crop_h)).resize(
+        (FRAME_W, FRAME_H), Image.LANCZOS
+    )
+
+
 def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
     """Render *spec* to a PNG and return its path."""
     if spec.cta is not None:
@@ -914,6 +953,11 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
             )
             bottom_limit = min(bottom_limit, y0 - BAND_GAP)
         _render_info_band(draw, spec, bottom_limit)
+
+    # The punch runs last so every highlight, arrow and text pixel is scaled
+    # together as one picture.  CTA frames returned above, so the club card is
+    # never zoomed.
+    img = _apply_zoom(spec, img)
 
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)

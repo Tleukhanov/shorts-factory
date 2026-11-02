@@ -9,8 +9,12 @@
   "hook_label_mate": "НАЙДИ МАТ",
   "hook_label_endgame": "ВЫИГРАЙ ЭНДШПИЛЬ",
   "hook_label_tactic": "НАЙДИ ЛУЧШИЙ ХОД",
-  "wrong_labels": ["НЕ ТОТ ХОД", "МИМО", "ТАК НЕ НАДО"],
+  "wrong_labels": ["НЕ ТОТ ХОД", "МИМО", "ДАЖЕ БЛИЗКО НЕ СТОЯЛ", "ТАК НЕ НАДО"],
+  "answer_labels": ["ВОТ ОТВЕТ", "А ВОТ И ОН", "СМОТРИ СЮДА"],
   "answer_label": "ВОТ ОТВЕТ",
+  "tease_label": "МОЖЕТ, В КЛУБ? ;)",
+  "final_mate_label": "МАТ!",
+  "final_win_label": "ХОД НАЙДЕН",
   "cta_top": "Вступай в клуб Senpai",
   "cta_bottom": "Ссылка в описании",
   "board_style": "mono"

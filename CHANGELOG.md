@@ -40,7 +40,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Full solution line including the mate, fast slide animation, beat-synced cuts.
   - Zoom punches on wrong moves and the answer; synthesized SFX (buzz, ding, whoosh, impact).
   - Hook label follows the puzzle type (`НАЙДИ МАТ`, `ВЫИГРАЙ ЭНДШПИЛЬ`, `НАЙДИ ЛУЧШИЙ ХОД`).
-  - Wrong moves are animated and annotated (`??` / `!!` / `!` / `#`).
+  - Wrong moves are animated and annotated with Chess.com-style square badges
+    (`??` blunder, `!!` brilliant, `!` great, star best).
+  - Richer comment bank (`НЕ ТОТ ХОД`, `ДАЖЕ БЛИЗКО НЕ СТОЯЛ`, `МОЖЕТ, В КЛУБ? ;)`,
+    `А ВОТ И ОН`, etc.) and type-aware hooks.
   - Music-driven, no voiceover; real phonk track is supplied via `--music` or `data/music/`.
   - New modules `shorts_clipper/chess/drama.py`, `shorts_clipper/chess/sfx.py`,
     config `config/chess_drama.json`.

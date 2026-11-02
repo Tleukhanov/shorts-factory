@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import dataclasses
 import functools
+import hashlib
 import json
 import logging
 import subprocess
@@ -41,6 +42,10 @@ MUSIC_VOLUME = 0.55
 # is available, so these are the shape of the edit, not its final duration.
 HOOK_SECONDS = 2.4
 WRONG_SECONDS = 1.2
+# A short tease between the traps and the answer, the reference Short's
+# "maybe try subscribing ;)" beat: a still of the same position that delays the
+# reveal just long enough to be felt.
+TEASE_SECONDS = 0.9
 ANSWER_SECONDS = 1.8
 SLIDE_STEPS = 5
 SLIDE_SECONDS = 0.07
@@ -72,10 +77,25 @@ class DramaConfig:
     hook_label_mate: str = "НАЙДИ МАТ"
     hook_label_endgame: str = "ВЫИГРАЙ ЭНДШПИЛЬ"
     hook_label_tactic: str = "НАЙДИ ЛУЧШИЙ ХОД"
+    # A bank rather than one string: the reference Short changes the comment on
+    # every beat, and repeating "НЕ ТОТ ХОД" over both traps reads as a template.
     wrong_labels: list[str] = dataclasses.field(
-        default_factory=lambda: ["НЕ ТОТ ХОД", "МИМО", "ТАК НЕ НАДО"]
+        default_factory=lambda: [
+            "НЕ ТОТ ХОД",
+            "МИМО",
+            "ДАЖЕ БЛИЗКО НЕ СТОЯЛ",
+            "ТАК НЕ НАДО",
+        ]
     )
+    answer_labels: list[str] = dataclasses.field(
+        default_factory=lambda: ["ВОТ ОТВЕТ", "А ВОТ И ОН", "СМОТРИ СЮДА"]
+    )
+    # Legacy single answer label.  Kept so old config files still load; when
+    # ``answer_labels`` is empty this is the only label used.
     answer_label: str = "ВОТ ОТВЕТ"
+    tease_label: str = "МОЖЕТ, В КЛУБ? ;)"
+    final_mate_label: str = "МАТ!"
+    final_win_label: str = "ХОД НАЙДЕН"
     cta_top: str = "Вступай в клуб Senpai"
     cta_bottom: str = "Ссылка в описании"
     board_style: str = "mono"
@@ -89,6 +109,10 @@ class DramaConfig:
         raw = json.loads(path.read_text(encoding="utf-8"))
         if "hashtags" in raw and isinstance(raw["hashtags"], list):
             raw["hashtags"] = tuple(raw["hashtags"])
+        # An old config names one answer label.  Honour it instead of silently
+        # replacing it with the new default bank.
+        if "answer_labels" not in raw and raw.get("answer_label"):
+            raw["answer_labels"] = [raw["answer_label"]]
         raw.setdefault("music_path", cls.music_path)
         return cls(**raw)
 
@@ -145,6 +169,22 @@ def _hook_label(puzzle: puzzle_db.Puzzle, cfg: DramaConfig) -> str:
     if themes & {"endgame", "pawnEndgame", "zugzwang", "opposition"}:
         return cfg.hook_label_endgame
     return cfg.hook_label_tactic
+
+
+def _answer_label(puzzle: puzzle_db.Puzzle, cfg: DramaConfig) -> str:
+    """Pick the reveal label from the bank, stable for a given puzzle.
+
+    Deterministic rather than random so re-rendering the same puzzle produces
+    the same clip.  The hash keeps different puzzles from all opening with
+    ``ВОТ ОТВЕТ`` while still letting a caller use a one-label bank.
+    """
+    labels = [label for label in cfg.answer_labels if label.strip()]
+    if not labels:
+        if cfg.answer_label.strip():
+            return cfg.answer_label
+        return "ВОТ ОТВЕТ"
+    digest = hashlib.sha1(str(puzzle.id).encode("utf-8")).digest()
+    return labels[int.from_bytes(digest[:4], "big") % len(labels)]
 
 
 def find_wrong_moves(
@@ -402,15 +442,14 @@ def plan_drama(
                 fen=after.fen(),
                 top_text="",
                 bottom_text=san,
-                accent="bad",
+                accent="blunder",
                 highlight_squares=(src, dst),
                 arrow=(src, dst),
                 board_style=cfg.board_style,
                 arrow_color="bad",
                 headline=label,
                 headline_color="bad",
-                annotation="??",
-                annotation_color="bad",
+                badge=(dst, "blunder"),
                 zoom=1.06,
             )
         )
@@ -431,20 +470,38 @@ def plan_drama(
         return _empty_plan(puzzle)
     best_src = chess.square_name(best_move.from_square)
     best_dst = chess.square_name(best_move.to_square)
+
+    # Beat 2.5: the tease.  The position is unchanged and there is no arrow, so
+    # the viewer's eye stays on the board while the headline withholds the
+    # answer for one short beat.
+    frames.append(
+        FrameSpec(
+            fen=start_fen,
+            top_text="",
+            bottom_text="",
+            accent="neutral",
+            board_style=cfg.board_style,
+            headline=cfg.tease_label,
+            headline_color="bad",
+            zoom=1.0,
+        )
+    )
+    holds.append(TEASE_SECONDS)
+
+    # Beat 3: the answer, board *before* the move and a green arrow.
     frames.append(
         FrameSpec(
             fen=start_fen,
             top_text="",
             bottom_text=best_san,
-            accent="good",
+            accent="brilliant",
             highlight_squares=(best_src, best_dst),
             arrow=(best_src, best_dst),
             board_style=cfg.board_style,
             arrow_color="good",
-            headline=cfg.answer_label,
+            headline=_answer_label(puzzle, cfg),
             headline_color="good",
-            annotation="!!",
-            annotation_color="good",
+            badge=(best_dst, "brilliant"),
             zoom=1.08,
         )
     )
@@ -456,6 +513,7 @@ def plan_drama(
     line_board = board.copy(stack=False)
     solution_sans: list[str] = []
     move_block_starts: list[int] = []
+    last_dst = ""
     for index, uci in enumerate(puzzle.solution_moves):
         try:
             move = chess.Move.from_uci(uci)
@@ -489,22 +547,35 @@ def plan_drama(
         holds.extend([SLIDE_SECONDS] * SLIDE_STEPS)
 
         line_board.push(move)
-        # Solver moves get the comment mark; the opponent's forced replies are
-        # context, so they stay unmarked.  Every move block still gets the same
-        # ramped punch so the line keeps its pulse.
+        last_dst = dst
+        # Solver moves get a badge; the opponent's forced replies are context,
+        # so they stay unmarked.  Every move block still gets the same ramped
+        # punch so the line keeps its pulse.
         solver_move = index % 2 == 0
+        is_mate_now = line_board.is_checkmate()
+        if solver_move:
+            if is_mate_now:
+                kind = "best"
+            elif index == 0:
+                kind = "great"
+            else:
+                kind = "excellent"
+            badge: tuple[str, str] | None = (dst, kind)
+            accent = kind
+        else:
+            badge = None
+            accent = "good"
         frames.append(
             FrameSpec(
                 fen=line_board.fen(),
                 top_text="",
                 bottom_text=san,
-                accent="good",
+                accent=accent,
                 highlight_squares=(src, dst),
                 arrow=(src, dst),
                 board_style=cfg.board_style,
                 arrow_color="good",
-                annotation="!" if solver_move else None,
-                annotation_color="good",
+                badge=badge,
                 zoom=1.02,
             )
         )
@@ -513,7 +584,7 @@ def plan_drama(
     # Beat 5: the final position.  A real mate is called out; anything else is
     # the solved position rather than a claim that the game is over.
     is_mate = line_board.is_checkmate()
-    final_headline = "МАТ!" if is_mate else "ХОД НАЙДЕН"
+    final_headline = cfg.final_mate_label if is_mate else cfg.final_win_label
     final_bottom = (
         f"Мат — {solution_sans[-1]}" if is_mate and solution_sans else ""
     )
@@ -522,12 +593,11 @@ def plan_drama(
             fen=line_board.fen(),
             top_text="",
             bottom_text=final_bottom,
-            accent="good",
+            accent="best" if is_mate else "good",
             board_style=cfg.board_style,
             headline=final_headline,
             headline_color="good",
-            annotation="#" if is_mate else None,
-            annotation_color="good",
+            badge=(last_dst, "best") if is_mate and last_dst else None,
             zoom=1.05,
         )
     )

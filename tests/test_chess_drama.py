@@ -57,6 +57,21 @@ def _wrong_moves(puzzle, count=2):
     return out
 
 
+def _last_destination(puzzle) -> str:
+    """The destination of the last legal move of the published solution."""
+    import chess
+
+    position = chess.Board(puzzle.puzzle_fen())
+    destination = ""
+    for uci in puzzle.solution_moves:
+        move = chess.Move.from_uci(uci)
+        if move not in position.legal_moves:
+            break
+        destination = chess.square_name(move.to_square)
+        position.push(move)
+    return destination
+
+
 # --------------------------------------------------------------------------
 # Config
 # --------------------------------------------------------------------------
@@ -68,11 +83,24 @@ def test_config_loads_the_repo_file(drama_cfg):
     assert drama_cfg.hook_label_endgame == "ВЫИГРАЙ ЭНДШПИЛЬ"
     assert drama_cfg.hook_label_tactic == "НАЙДИ ЛУЧШИЙ ХОД"
     assert drama_cfg.answer_label == "ВОТ ОТВЕТ"
+    assert drama_cfg.answer_labels[:1] == ["ВОТ ОТВЕТ"]
+    assert len(drama_cfg.answer_labels) >= 3
+    assert "ДАЖЕ БЛИЗКО НЕ СТОЯЛ" in drama_cfg.wrong_labels
+    assert drama_cfg.tease_label
+    assert drama_cfg.final_mate_label == "МАТ!"
+    assert drama_cfg.final_win_label == "ХОД НАЙДЕН"
     assert drama_cfg.board_style == "mono"
     assert drama_cfg.beat_sync is True
     assert drama_cfg.max_wrong_moves >= 1
     assert isinstance(drama_cfg.hashtags, tuple)
     assert isinstance(drama_cfg.wrong_labels, list)
+
+
+def test_legacy_single_answer_label_config_still_wins(tmp_path):
+    path = tmp_path / "legacy.json"
+    path.write_text('{"answer_label": "СТАРЫЙ ОТВЕТ"}', encoding="utf-8")
+    cfg = drama.DramaConfig.from_file(path)
+    assert cfg.answer_labels == ["СТАРЫЙ ОТВЕТ"]
 
 
 def test_missing_config_falls_back_to_defaults(tmp_path):
@@ -82,6 +110,11 @@ def test_missing_config_falls_back_to_defaults(tmp_path):
     assert cfg.hook_label_tactic == "НАЙДИ ЛУЧШИЙ ХОД"
     assert cfg.board_style == "mono"
     assert cfg.music_path.endswith(".wav")
+    assert len(cfg.answer_labels) >= 3
+    assert len(cfg.wrong_labels) >= 4
+    assert cfg.tease_label
+    assert cfg.final_mate_label == "МАТ!"
+    assert cfg.final_win_label == "ХОД НАЙДЕН"
 
 
 def _with_themes(puzzle: puzzle_db.Puzzle, *themes: str) -> puzzle_db.Puzzle:
@@ -200,34 +233,45 @@ def test_plan_has_hook_wrong_answer_mate_and_cta(sample_puzzle, drama_cfg):
     assert hook.board_style == "mono"
     assert hook.fen == sample_puzzle.puzzle_fen()
 
-    wrong_frames = [frame for frame in frames if frame.accent == "bad"]
+    wrong_frames = [frames[index] for index in plan.wrong_frame_indices]
     assert len(wrong_frames) == len(wrongs)
     for frame in wrong_frames:
         assert frame.headline in drama_cfg.wrong_labels
         assert frame.arrow is not None
         assert frame.highlight_squares
         assert frame.arrow_color == "bad"
+        assert frame.accent == "blunder"
+        assert frame.badge == (frame.arrow[1], "blunder")
         assert frame.bottom_text
 
-    answer = next(frame for frame in frames if frame.headline == drama_cfg.answer_label)
-    assert answer.accent == "good"
+    answer = frames[plan.answer_frame_index]
+    assert answer.headline in drama_cfg.answer_labels
+    assert answer.accent == "brilliant"
     assert answer.arrow_color == "good"
     assert answer.arrow is not None
+    assert answer.badge == (answer.arrow[1], "brilliant")
     assert answer.highlight_squares
     assert answer.fen == sample_puzzle.puzzle_fen()
     assert answer.bottom_text == plan.solution_sans[0]
 
-    mate = next(frame for frame in frames if frame.headline == "МАТ!")
-    assert mate.accent == "good"
+    mate = frames[plan.mate_frame_index]
+    assert mate.headline == drama_cfg.final_mate_label
+    assert mate.accent == "best"
+    assert mate.badge == (_last_destination(sample_puzzle), "best")
     assert chess.Board(mate.fen).is_checkmate()
 
     line_landings = [
-        frame
-        for frame in frames
-        if frame.headline is None and frame.arrow is not None and frame.accent == "good"
+        frames[start + drama.SLIDE_STEPS] for start in plan.move_block_starts
     ]
     assert len(line_landings) == len(plan.solution_sans)
-    assert all(frame.arrow_color == "good" for frame in line_landings)
+    for move_index, frame in enumerate(line_landings):
+        assert frame.arrow_color == "good"
+        if move_index % 2:
+            assert frame.badge is None
+        else:
+            assert frame.badge is not None
+            assert frame.badge[0] == frame.arrow[1]
+            assert frame.badge[1] in {"great", "excellent", "best"}
 
     assert frames[-1].cta == (drama_cfg.cta_top, drama_cfg.cta_bottom)
     assert len(plan.clip_plan.holds) == len(frames)
@@ -240,8 +284,10 @@ def test_plan_skips_wrong_beats_without_an_engine(sample_puzzle, drama_cfg):
     plan = drama.plan_drama(sample_puzzle, [], drama_cfg)
     headlines = [frame.headline for frame in plan.clip_plan.frames]
     assert drama._hook_label(sample_puzzle, drama_cfg) in headlines
-    assert drama_cfg.answer_label in headlines
-    assert "МАТ!" in headlines
+    assert drama._answer_label(sample_puzzle, drama_cfg) in headlines
+    assert drama_cfg.tease_label in headlines
+    assert drama_cfg.final_mate_label in headlines
+    assert plan.wrong_frame_indices == ()
 
 
 def test_wrong_moves_animate_before_the_red_landing(sample_puzzle, drama_cfg):
@@ -257,33 +303,89 @@ def test_wrong_moves_animate_before_the_red_landing(sample_puzzle, drama_cfg):
         assert all(frame.moving is not None for frame in slides)
         assert all(frame.fen == start_fen for frame in slides)
         assert frames[index].moving is None
-        assert frames[index].annotation == "??"
+        assert frames[index].badge == (frames[index].arrow[1], "blunder")
+        assert frames[index].annotation is None
 
 
-def test_annotations_mark_wrong_answer_line_and_mate(sample_puzzle, drama_cfg):
+def test_badges_mark_wrong_answer_line_and_mate(sample_puzzle, drama_cfg):
     plan = drama.plan_drama(sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg)
     frames = plan.clip_plan.frames
 
     for index in plan.wrong_frame_indices:
-        assert frames[index].annotation == "??"
-        assert frames[index].annotation_color == "bad"
+        frame = frames[index]
+        assert frame.badge == (frame.arrow[1], "blunder")
+        assert frame.accent == "blunder"
 
     answer = frames[plan.answer_frame_index]
-    assert answer.annotation == "!!"
-    assert answer.annotation_color == "good"
+    assert answer.badge == (answer.arrow[1], "brilliant")
+    assert answer.accent == "brilliant"
 
     assert plan.move_block_starts
     for move_index, start in enumerate(plan.move_block_starts):
         landing = frames[start + drama.SLIDE_STEPS]
-        if move_index % 2 == 0:
-            assert landing.annotation == "!"
-            assert landing.annotation_color == "good"
+        if move_index % 2:
+            assert landing.badge is None
+            assert landing.accent == "good"
+            continue
+        assert landing.badge is not None
+        assert landing.badge[0] == landing.arrow[1]
+        assert landing.accent == landing.badge[1]
+        final_move = move_index == len(plan.solution_sans) - 1
+        if final_move and plan.is_mate:
+            assert landing.badge[1] == "best"
+        elif move_index == 0:
+            assert landing.badge[1] == "great"
         else:
-            assert landing.annotation is None
+            assert landing.badge[1] == "excellent"
 
     mate = frames[plan.mate_frame_index]
-    assert mate.annotation == "#"
-    assert mate.annotation_color == "good"
+    assert mate.badge == (_last_destination(sample_puzzle), "best")
+    assert mate.accent == "best"
+    assert mate.annotation is None
+
+
+def test_tease_frame_precedes_the_answer(sample_puzzle, drama_cfg):
+    plan = drama.plan_drama(sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg)
+    frames = plan.clip_plan.frames
+    answer_index = plan.answer_frame_index
+    tease = frames[answer_index - 1]
+
+    assert tease.headline == drama_cfg.tease_label
+    assert tease.headline_color == "bad"
+    assert tease.arrow is None
+    assert tease.badge is None
+    assert not tease.highlight_squares
+    assert tease.fen == sample_puzzle.puzzle_fen()
+    assert plan.clip_plan.holds[answer_index - 1] == pytest.approx(
+        drama.TEASE_SECONDS
+    )
+
+
+def test_labels_rotate_through_their_banks(sample_puzzle, drama_cfg):
+    plan = drama.plan_drama(sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg)
+    frames = plan.clip_plan.frames
+
+    wrong_labels = [frames[index].headline for index in plan.wrong_frame_indices]
+    expected = [
+        drama_cfg.wrong_labels[index % len(drama_cfg.wrong_labels)]
+        for index in range(len(wrong_labels))
+    ]
+    assert wrong_labels == expected
+
+    # The answer label is stable for one puzzle and drawn from the bank.  Across
+    # ids it is not always the same entry, which is what makes it a bank rather
+    # than a renamed constant.
+    assert drama._answer_label(sample_puzzle, drama_cfg) == drama._answer_label(
+        sample_puzzle, drama_cfg
+    )
+    seen = {
+        drama._answer_label(
+            dataclasses.replace(sample_puzzle, id=f"puzzle-{index}"), drama_cfg
+        )
+        for index in range(20)
+    }
+    assert seen <= set(drama_cfg.answer_labels)
+    assert len(seen) > 1
 
 
 def test_music_volume_is_clearly_audible():
@@ -395,6 +497,78 @@ def test_arrow_colour_palette():
     assert board._annotation_color("good") == board.ACCENT_GOOD
     assert board._annotation_color("bad") == board.ACCENT_BAD
     assert board._annotation_color("neutral") == board.TEXT_MAIN
+
+    # A badge kind is a valid accent name too, so the highlight and the circle
+    # cannot drift apart.
+    for kind, colour in (
+        ("brilliant", board.BADGE_BRILLIANT),
+        ("great", board.BADGE_GREAT),
+        ("best", board.BADGE_BEST),
+        ("excellent", board.BADGE_BEST),
+        ("inaccuracy", board.BADGE_INACCURACY),
+        ("mistake", board.BADGE_MISTAKE),
+        ("blunder", board.BADGE_BLUNDER),
+    ):
+        assert board._badge_color(kind) == colour
+        assert board._highlight_color(kind) == colour
+    assert board._badge_color("not-a-kind") is None
+
+
+def _badge_centre(square: str) -> tuple[float, float]:
+    step = board.BOARD / 8.0
+    col = ord(square[0]) - ord("a")
+    row = 8 - int(square[1])
+    left = (board.FRAME_W - board.BOARD) // 2
+    return (
+        left + col * step + step * 0.93,
+        board.BOARD_TOP + row * step + step * 0.07,
+    )
+
+
+@pytest.mark.parametrize(
+    ("kind", "colour"),
+    [
+        ("blunder", board.BADGE_BLUNDER),
+        ("brilliant", board.BADGE_BRILLIANT),
+        ("best", board.BADGE_BEST),
+    ],
+)
+def test_square_badge_renders_in_its_kind_colour(tmp_path, kind, colour):
+    from PIL import Image
+
+    out = board.render_frame(
+        board.FrameSpec(
+            fen="8/8/8/8/8/8/8/8 w - - 0 1",
+            top_text="",
+            bottom_text="",
+            board_style="mono",
+            accent=kind,
+            badge=("e4", kind),
+        ),
+        tmp_path / f"badge_{kind}.png",
+    )
+
+    with Image.open(out) as img:
+        rgb = img.convert("RGB")
+        step = board.BOARD / 8.0
+        radius = step * board.BADGE_SIZE / 2.0
+        cx, cy = _badge_centre("e4")
+        crop = rgb.crop(
+            (
+                int(cx - radius),
+                int(cy - radius),
+                int(cx + radius) + 1,
+                int(cy + radius) + 1,
+            )
+        )
+        colors = [pixel for _, pixel in crop.getcolors(maxcolors=100_000)]
+        assert any(
+            max(abs(pixel[i] - colour[i]) for i in range(3)) <= 20
+            for pixel in colors
+        ), f"{kind} badge colour missing from the destination square"
+        assert any(pixel == board.BADGE_BORDER for pixel in colors), (
+            "the badge has no white ring"
+        )
 
 
 def test_annotation_renders_at_the_board_corner(tmp_path):

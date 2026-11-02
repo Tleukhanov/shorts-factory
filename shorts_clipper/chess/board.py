@@ -110,6 +110,44 @@ HEADLINE_STROKE = 9
 # stroke and badge behind them keep the mark readable against the headline.
 ANNOTATION_SIZE = 110
 ANNOTATION_STROKE = 10
+# Chess.com-style square badges.  A move is marked on its *destination* square
+# with a small round badge instead of a large mark floating above the board.
+# The colours are the ones the reference Short and chess.com use, and the same
+# names drive the square highlight so a red blunder frame reads red everywhere.
+BADGE_BRILLIANT = (38, 194, 163)  # #26c2a3
+BADGE_GREAT = (91, 139, 160)  # #5b8ba0
+BADGE_BEST = (129, 182, 76)  # #81b64c
+BADGE_BOOK = (168, 136, 101)  # #a88865
+BADGE_INACCURACY = (247, 198, 49)  # #f7c631
+BADGE_MISTAKE = (229, 143, 42)  # #e58f2a
+BADGE_BLUNDER = (202, 52, 49)  # #ca3431
+BADGE_COLORS = {
+    "brilliant": BADGE_BRILLIANT,
+    "great": BADGE_GREAT,
+    "best": BADGE_BEST,
+    "excellent": BADGE_BEST,
+    "good": BADGE_BEST,
+    "book": BADGE_BOOK,
+    "inaccuracy": BADGE_INACCURACY,
+    "mistake": BADGE_MISTAKE,
+    "blunder": BADGE_BLUNDER,
+}
+# The glyph may be one or two characters; the renderer fits it to the circle.
+BADGE_SYMBOLS = {
+    "brilliant": "!!",
+    "great": "!",
+    "best": "★",
+    "excellent": "✓",
+    "good": "✓",
+    "book": "B",
+    "inaccuracy": "?!",
+    "mistake": "?",
+    "blunder": "??",
+}
+# Diameter as a share of a square, and the heavy white ring that makes the
+# badge separate from a bright or busy board.
+BADGE_SIZE = 0.26
+BADGE_BORDER = (252, 252, 252)
 # Punch-in bounds for the drama edit.  Past 1.12 the headline and the info band
 # lose too many pixels to stay legible on a phone, and below 1.0 there is no
 # punch at all.
@@ -142,6 +180,17 @@ _PIECE_FONTS = (
     "C:/Windows/Fonts/arial.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
 )
+# Badge symbols want weight: at ~30px across, a regular "?" disappears next to
+# the piece underneath it.  Bold is tried first, then the regular text faces as
+# a fallback for symbols such as the star that a bold file might omit.
+_BOLD_FONTS = (
+    "C:/Windows/Fonts/segoeuib.ttf",
+    "C:/Windows/Fonts/arialbd.ttf",
+    "C:/Windows/Fonts/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+)
+_BADGE_FONTS = _BOLD_FONTS + _TEXT_FONTS
 _PROBE_CHAR = "\ue123"  # private-use, guaranteed absent from these fonts
 
 
@@ -301,8 +350,15 @@ class FrameSpec:
     headline_color: str = "bad"  # "bad" | "good" | "neutral"
     # A move comment mark rendered as a badge at the board's top-right, e.g.
     # "!!" for the answer or "??" for a trap.  Optional: None draws nothing.
+    # Kept for callers from before the square badges existed; a frame that sets
+    # ``badge`` never draws this, because the badge is the chess.com vocabulary.
     annotation: str | None = None
     annotation_color: str = "bad"  # "bad" | "good" | "neutral"
+    # Chess.com-style badge on a named square: ``(square, kind)``, e.g.
+    # ``("e4", "blunder")`` or ``("d5", "brilliant")``.  The kind chooses both
+    # the circle colour and its symbol (see :data:`BADGE_COLORS` and
+    # :data:`BADGE_SYMBOLS`).  An unknown square or kind is skipped silently.
+    badge: tuple[str, str] | None = None
     # Camera punch: 1.0 is no zoom.  Values above 1 crop a smaller window around
     # ``zoom_center`` and scale it back up, which is what makes the drama edit's
     # wrong-move and answer beats land.  Clamped to ZOOM_MAX when rendered so a
@@ -314,9 +370,17 @@ class FrameSpec:
 
 
 def _accent_color(accent: str):
-    return {"bad": ACCENT_BAD, "good": ACCENT_GOOD, "alt": ACCENT_ALT}.get(
-        accent, TEXT_MAIN
-    )
+    """Fill for text that follows an accent name.
+
+    The chess.com badge kinds are accepted here too, so a frame can say
+    ``accent="brilliant"`` once instead of repeating a colour in every caller.
+    """
+    return {
+        **BADGE_COLORS,
+        "bad": ACCENT_BAD,
+        "good": ACCENT_GOOD,
+        "alt": ACCENT_ALT,
+    }.get(accent, TEXT_MAIN)
 
 
 def _highlight_color(accent: str):
@@ -324,13 +388,85 @@ def _highlight_color(accent: str):
 
     ``neutral`` keeps the trainer's yellow, so old frames are untouched; the
     drama format uses the accent itself so a red wrong-move frame and a green
-    answer frame are distinguishable at a glance.
+    answer frame are distinguishable at a glance.  Badge-kind names map to the
+    badge colour, which is what makes the highlight and the circle agree.
     """
     return {
+        **BADGE_COLORS,
         "bad": HIGHLIGHT_BAD,
         "good": HIGHLIGHT_GOOD,
         "alt": HIGHLIGHT_ALT,
     }.get(accent, HIGHLIGHT)
+
+
+def _badge_color(kind: str):
+    """RGB for a badge kind, or ``None`` when the kind is unknown."""
+    return BADGE_COLORS.get(kind)
+
+
+def _badge_square(square: str) -> tuple[int, int] | None:
+    """``(col, row)`` for a square name, or ``None`` when it is not a square.
+
+    Deliberately does not consult a board: a badge on a square that happens to
+    be empty is still meaningful, and a malformed name from a config or a caller
+    must be skipped rather than crash the render.
+    """
+    try:
+        name = str(square).strip().lower()
+        if len(name) != 2 or not ("a" <= name[0] <= "h") or not ("1" <= name[1] <= "8"):
+            return None
+        return ord(name[0]) - ord("a"), 8 - int(name[1])
+    except (TypeError, ValueError):
+        return None
+
+
+def _fit_badge_font(draw, symbol: str, radius: float):
+    """The largest bold font whose *symbol* fits inside a badge *radius*."""
+    size = max(10, int(round(radius * 1.5)))
+    inner = radius * 1.65  # a little inside the white ring
+    font = _first_font(_BADGE_FONTS, size, symbol)
+    while size > 9 and _text_extent(draw, symbol, font)[0] > inner:
+        size -= 1
+        font = _first_font(_BADGE_FONTS, size, symbol)
+    return font
+
+
+def _draw_badge(
+    draw,
+    square: str,
+    kind: str,
+    board_left: int,
+    board_top: int,
+    step: float,
+) -> None:
+    """Draw a chess.com-style circle badge on the top-right of *square*.
+
+    The circle straddles the square's corner rather than sitting in its middle:
+    that is where the reference Short puts ``??``, ``!!`` and the star, and it
+    keeps the piece on the destination square fully visible.
+    """
+    colour = _badge_color(kind)
+    symbol = BADGE_SYMBOLS.get(kind)
+    cell = _badge_square(square)
+    if colour is None or symbol is None or cell is None:
+        return
+
+    col, row = cell
+    x0 = board_left + col * step
+    y0 = board_top + row * step
+    radius = step * BADGE_SIZE / 2.0
+    cx = x0 + step * 0.93
+    cy = y0 + step * 0.07
+    border = max(2, min(4, int(round(radius * 0.2))))
+
+    draw.ellipse(
+        (cx - radius, cy - radius, cx + radius, cy + radius),
+        fill=colour,
+        outline=BADGE_BORDER,
+        width=border,
+    )
+    font = _fit_badge_font(draw, symbol, radius)
+    draw.text((cx, cy), symbol, font=font, fill=(255, 255, 255), anchor="mm")
 
 
 def _arrow_color(name: str):
@@ -953,7 +1089,12 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
         outline=edge_colour, width=3,
     )
 
-    if spec.annotation:
+    if spec.badge is not None:
+        # Badges belong on the destination square, so they are drawn above the
+        # pieces and the board edge and can overlap both without being clipped.
+        _draw_badge(draw, spec.badge[0], spec.badge[1], board_left, board_top, step)
+
+    if spec.annotation and spec.badge is None:
         # A comment mark belongs to the board, so it sits in the top-right just
         # above the pieces rather than in the caption band.  The dark badge is
         # what keeps it legible when a headline reaches the same corner.

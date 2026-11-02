@@ -80,13 +80,31 @@ TEXT_MAIN = (245, 245, 245)
 TEXT_DIM = (150, 150, 155)
 ACCENT_BAD = (214, 74, 62)
 ACCENT_GOOD = (96, 178, 116)
+ACCENT_ALT = (90, 190, 215)
 HIGHLIGHT = (205, 210, 106)  # #cdd26a, the trainer's last-move highlight
+HIGHLIGHT_BAD = (220, 80, 75)
+HIGHLIGHT_GOOD = (96, 178, 116)
+HIGHLIGHT_ALT = (90, 190, 215)
 # Coordinates are drawn in the opposite square colour, exactly like the trainer.
 COORD_ON_LIGHT = (181, 136, 99)
 COORD_ON_DARK = (240, 217, 181)
 # Lichess-style move arrow: green, semi-transparent, thick shaft, solid head.
 ARROW_COLOR = (21, 120, 27)  # #15781b
+ARROW_BAD = (180, 30, 30)
+ARROW_ALT = (0, 120, 160)
 ARROW_ALPHA = 200
+# Grayscale board for the viral "drama" format: coloured highlights and arrows
+# are the only colour on the frame, so they read from across a thumbnail.
+MONO_LIGHT_SQUARE = (222, 222, 222)
+MONO_DARK_SQUARE = (128, 128, 128)
+MONO_BOARD_FRAME = (74, 74, 78)
+MONO_BOARD_EDGE = (112, 112, 116)
+MONO_COORD_ON_LIGHT = (88, 88, 88)
+MONO_COORD_ON_DARK = (205, 205, 205)
+# The meme headline sits above the board and is tried largest first, the same
+# way the information band fits its hook.
+HEADLINE_SIZES = (120, 112, 104, 96, 88, 80, 72)
+HEADLINE_STROKE = 9
 
 # cburnett is the default Lichess piece set.  The PNGs are pre-rendered from the
 # CC BY-SA 3.0 SVGs that ship next to them; see assets/cburnett_svg/README.md.
@@ -260,10 +278,61 @@ class FrameSpec:
     # Squares whose pieces are not drawn on this frame.  Used by the animation
     # so the moving piece does not appear twice.
     hidden_squares: tuple[str, ...] = ()
+    # Board palette: ``classic`` keeps the brown Lichess board, ``mono`` draws
+    # grayscale squares so coloured highlights and arrows pop.  Additive, so
+    # every existing caller keeps the classic look.
+    board_style: str = "classic"  # "classic" | "mono"
+    # Arrow colour: green for the answer, red for a wrong move, cyan for an
+    # alternative line.  The old constant stays the default.
+    arrow_color: str = "good"  # "good" | "bad" | "alt"
+    # A large centred meme headline drawn above the board, e.g. "НАЙДИ МАТ".
+    # Optional: None leaves the frame exactly as before.
+    headline: str | None = None
+    headline_color: str = "bad"  # "bad" | "good" | "neutral"
 
 
 def _accent_color(accent: str):
-    return {"bad": ACCENT_BAD, "good": ACCENT_GOOD}.get(accent, TEXT_MAIN)
+    return {"bad": ACCENT_BAD, "good": ACCENT_GOOD, "alt": ACCENT_ALT}.get(
+        accent, TEXT_MAIN
+    )
+
+
+def _highlight_color(accent: str):
+    """Square highlight colour for an accent name.
+
+    ``neutral`` keeps the trainer's yellow, so old frames are untouched; the
+    drama format uses the accent itself so a red wrong-move frame and a green
+    answer frame are distinguishable at a glance.
+    """
+    return {
+        "bad": HIGHLIGHT_BAD,
+        "good": HIGHLIGHT_GOOD,
+        "alt": HIGHLIGHT_ALT,
+    }.get(accent, HIGHLIGHT)
+
+
+def _arrow_color(name: str):
+    """RGB for an arrow name: green (good), red (bad), cyan (alt)."""
+    return {"bad": ARROW_BAD, "alt": ARROW_ALT}.get(name, ARROW_COLOR)
+
+
+def _headline_color(name: str):
+    """Fill for the headline: red, green, or white."""
+    return {"bad": ACCENT_BAD, "good": ACCENT_GOOD}.get(name, TEXT_MAIN)
+
+
+def _fit_headline(draw, text: str, width: int):
+    """The largest headline size whose ink fits *width*, shrinking until it does."""
+    font = _first_font(_TEXT_FONTS, HEADLINE_SIZES[-1], "Х")
+    for size in HEADLINE_SIZES:
+        font = _first_font(_TEXT_FONTS, size, "Х")
+        if _text_extent(draw, text, font)[0] <= width:
+            return font
+    extent = _text_extent(draw, text, font)[0]
+    if extent > width:
+        size = max(24, int(HEADLINE_SIZES[-1] * width / extent))
+        font = _first_font(_TEXT_FONTS, size, "Х")
+    return font
 
 
 def _square_centres(size: int):
@@ -638,13 +707,27 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
     img = Image.new("RGB", (FRAME_W, FRAME_H), BOARD_BG)
     draw = ImageDraw.Draw(img)
 
-    draw.text(
-        (FRAME_W // 2, 120),
-        spec.top_text,
-        fill=_accent_color(spec.accent),
-        font=_first_font(_TEXT_FONTS, 64, "Х"),
-        anchor="mm",
-    )
+    if spec.headline:
+        # The meme headline owns the header: top_text would collide with it, and
+        # the drama format has no caption to lose.
+        font = _fit_headline(draw, spec.headline, FRAME_W - 80)
+        draw.text(
+            (FRAME_W // 2, 150),
+            spec.headline,
+            fill=_headline_color(spec.headline_color),
+            font=font,
+            anchor="mm",
+            stroke_width=HEADLINE_STROKE,
+            stroke_fill=(14, 14, 16),
+        )
+    else:
+        draw.text(
+            (FRAME_W // 2, 120),
+            spec.top_text,
+            fill=_accent_color(spec.accent),
+            font=_first_font(_TEXT_FONTS, 64, "Х"),
+            anchor="mm",
+        )
     if spec.bottom_text:
         draw.text(
             (FRAME_W // 2, FRAME_H - 180),
@@ -666,6 +749,14 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
 
     step = BOARD / 8.0
     highlight = {s.lower() for s in spec.highlight_squares}
+    mono = spec.board_style == "mono"
+    light_square = MONO_LIGHT_SQUARE if mono else LIGHT_SQUARE
+    dark_square = MONO_DARK_SQUARE if mono else DARK_SQUARE
+    frame_colour = MONO_BOARD_FRAME if mono else BOARD_FRAME
+    edge_colour = MONO_BOARD_EDGE if mono else (60, 60, 64)
+    coord_on_light = MONO_COORD_ON_LIGHT if mono else COORD_ON_LIGHT
+    coord_on_dark = MONO_COORD_ON_DARK if mono else COORD_ON_DARK
+    highlight_colour = _highlight_color(spec.accent)
 
     # A thin frame around the board, like the trainer's wooden edge.
     draw.rectangle(
@@ -675,7 +766,7 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
             board_left + BOARD + BOARD_FRAME_WIDTH,
             board_top + BOARD + BOARD_FRAME_WIDTH,
         ],
-        fill=BOARD_FRAME,
+        fill=frame_colour,
     )
 
     for row in range(8):
@@ -686,9 +777,9 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
             x0 = board_left + col * step
             y0 = board_top + row * step
             light = (row + col) % 2 == 1
-            fill = LIGHT_SQUARE if light else DARK_SQUARE
+            fill = light_square if light else dark_square
             if name in highlight:
-                fill = HIGHLIGHT
+                fill = highlight_colour
             draw.rectangle([x0, y0, x0 + step, y0 + step], fill=fill)
 
     # Coordinates live in the square corner, in the opposite square colour, so
@@ -698,7 +789,7 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
         rank = 8 - row
         y0 = board_top + row * step
         light = row % 2 == 1
-        colour = COORD_ON_LIGHT if light else COORD_ON_DARK
+        colour = coord_on_light if light else coord_on_dark
         draw.text(
             (board_left + 7, y0 + step - 8),
             str(rank),
@@ -711,7 +802,7 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
         x0 = board_left + col * step
         y0 = board_top + 7 * step
         light = (7 + col) % 2 == 1
-        colour = COORD_ON_LIGHT if light else COORD_ON_DARK
+        colour = coord_on_light if light else coord_on_dark
         draw.text(
             (x0 + step - 7, y0 + step - 6),
             file,
@@ -792,7 +883,7 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
                 right = (base[0] + uy * head_half, base[1] - ux * head_half)
                 overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
                 odraw = ImageDraw.Draw(overlay)
-                colour = (*ARROW_COLOR, ARROW_ALPHA)
+                colour = (*_arrow_color(spec.arrow_color), ARROW_ALPHA)
                 odraw.line([p1, base], fill=colour, width=18)
                 odraw.ellipse(
                     [p1[0] - 9, p1[1] - 9, p1[0] + 9, p1[1] + 9],
@@ -806,7 +897,7 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
 
     draw.rectangle(
         [board_left, board_top, board_left + BOARD, board_top + BOARD],
-        outline=(60, 60, 64), width=3,
+        outline=edge_colour, width=3,
     )
 
     if spec.info is not None:

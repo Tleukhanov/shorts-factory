@@ -306,6 +306,72 @@ def _cmd_chess_tactics(args: argparse.Namespace, settings: Settings) -> int:
     return 1
 
 
+def _cmd_chess_drama(args: argparse.Namespace, settings: Settings) -> int:
+    """Run the viral puzzle-drama format from the Lichess puzzle DB."""
+    from shorts_clipper.chess import drama, puzzle_db
+
+    count = getattr(args, "count", 1)
+    drama_cfg = drama.DramaConfig.from_file(
+        getattr(args, "drama_config", None) or "config/chess_drama.json"
+    )
+    # Selection and dedup stay on the tactics quality gate: the drama format
+    # changes the edit, not which puzzles are good enough to publish.
+    sel_cfg = puzzle_db.TacticsConfig.from_file(
+        getattr(args, "tactics_config", None) or "config/chess_tactics.json"
+    )
+    sel_cfg.db_path = Path(sel_cfg.db_path)
+    sel_cfg.cache_path = Path(sel_cfg.cache_path)
+    used_path = sel_cfg.cache_path.with_suffix(".used.json")
+
+    if not sel_cfg.db_path.is_file():
+        print("📥 Lichess puzzle DB not found — downloading (~300 MB)...")
+        puzzle_db.download_db(sel_cfg.db_url, sel_cfg.db_path)
+
+    output_dir = Path(getattr(args, "output", None) or "outputs/chess_drama")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    no_music = getattr(args, "no_music", False)
+    bed = drama.resolve_music(
+        drama_cfg,
+        explicit=getattr(args, "music", None),
+        no_music=no_music,
+        music_dir=settings.music_dir,
+    )
+    if not no_music and bed is None:
+        print("⚠️  No music track found — rendering without music.", file=sys.stderr)
+
+    used = puzzle_db._load_used(used_path)
+    puzzles = puzzle_db.select_puzzles(
+        sel_cfg.db_path, count=count, cfg=sel_cfg, used=used
+    )
+    print(f"🎭 Selected {len(puzzles)} drama puzzles from the Lichess DB")
+
+    produced: list[Path] = []
+    for i, puzzle in enumerate(puzzles, 1):
+        out = output_dir / f"drama_{i:03d}_{puzzle.id}.mp4"
+        wrong_moves = drama.find_wrong_moves(
+            puzzle, count=drama_cfg.max_wrong_moves
+        )
+        plan = drama.plan_drama(puzzle, wrong_moves, drama_cfg, music_path=bed)
+        traps = ", ".join(wrong.san for wrong in wrong_moves) or "no engine traps"
+        print(f"  [{i}/{len(puzzles)}] {puzzle.id} — {traps} — saving to {out.name}")
+        result = drama.render_drama(plan, out, music_path=bed)
+        if result is not None:
+            drama.write_metadata(plan, out, drama_cfg)
+            produced.append(result)
+            used.add(puzzle.id)
+        else:
+            print(f"  ⚠️  {puzzle.id} produced no clip", file=sys.stderr)
+
+    puzzle_db._save_used(used_path, used)
+
+    if produced:
+        print(f"\n🔥 DRAMA SUCCESS — {len(produced)} clip(s) in {output_dir}")
+        return 0
+    print("\n❌ DRAMA FAILED — no clip produced.", file=sys.stderr)
+    return 1
+
+
 def _cmd_chess_analysis(
     args: argparse.Namespace,
     settings: Settings,
@@ -695,6 +761,8 @@ def _cmd_chess(args: argparse.Namespace, settings: Settings) -> int:
     fmt = getattr(args, "format", "deciding") or "deciding"
     if fmt == "tactic":
         return _cmd_chess_tactics(args, settings)
+    if fmt == "drama":
+        return _cmd_chess_drama(args, settings)
     if fmt in ("tournament", "analysis"):
         return _cmd_chess_analysis(args, settings, fmt)
     if fmt == "club-challenge":
@@ -1072,6 +1140,7 @@ def build_parser() -> argparse.ArgumentParser:
             "endgame",
             "highlight",
             "tactic",
+            "drama",
             "tournament",
             "analysis",
             "club-challenge",
@@ -1085,7 +1154,9 @@ def build_parser() -> argparse.ArgumentParser:
             "viewer challenges (needs the engine), 'opening' names the line and its "
             "first mistake, 'endgame' names the complex, 'highlight' skims the whole "
             "game fast then slows down at its worst move (one clip per game), "
-            "'tactic' uses the curated Lichess puzzle DB, 'tournament'/'analysis' "
+            "'tactic' uses the curated Lichess puzzle DB, 'drama' turns a puzzle "
+            "into a fast hook/wrong-move/reveal edit with a music-only bed, "
+            "'tournament'/'analysis' "
             "fetches a Lichess tournament and renders decisive moments from real games, "
             "'story' renders human-centric tournament recaps or member profiles "
             "(default: deciding)"
@@ -1096,6 +1167,12 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="FILE",
         default=None,
         help="Path to tactics quality-gate config (default: config/chess_tactics.json)",
+    )
+    chess_p.add_argument(
+        "--drama-config",
+        metavar="FILE",
+        default=None,
+        help="Path to drama format config (default: config/chess_drama.json)",
     )
     chess_p.add_argument(
         "--analysis-config",

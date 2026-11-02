@@ -1,0 +1,15 @@
+{
+  "club_name": "Senpai",
+  "lichess_team_url": "https://lichess.org/team/senpai",
+  "whatsapp_url": "https://chat.whatsapp.com/LNaji7VCA0LAp8zLSzJoIW",
+  "hashtags": ["#шахматы", "#мат", "#senpai", "#shorts"],
+  "music_path": "data/music/phonk.wav",
+  "beat_sync": true,
+  "max_wrong_moves": 2,
+  "hook_label": "НАЙДИ МАТ",
+  "wrong_labels": ["НЕ ТОТ ХОД", "МИМО", "ТАК НЕ НАДО"],
+  "answer_label": "ВОТ ОТВЕТ",
+  "cta_top": "Вступай в клуб Senpai",
+  "cta_bottom": "Ссылка в описании",
+  "board_style": "mono"
+}

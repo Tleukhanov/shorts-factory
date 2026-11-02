@@ -105,6 +105,11 @@ MONO_COORD_ON_DARK = (205, 205, 205)
 # way the information band fits its hook.
 HEADLINE_SIZES = (120, 112, 104, 96, 88, 80, 72)
 HEADLINE_STROKE = 9
+# Move annotations ("!!", "??", "!?") are a comment mark, not a caption: they
+# sit next to the board at a size that survives a phone screen.  The thick dark
+# stroke and badge behind them keep the mark readable against the headline.
+ANNOTATION_SIZE = 110
+ANNOTATION_STROKE = 10
 # Punch-in bounds for the drama edit.  Past 1.12 the headline and the info band
 # lose too many pixels to stay legible on a phone, and below 1.0 there is no
 # punch at all.
@@ -294,6 +299,10 @@ class FrameSpec:
     # Optional: None leaves the frame exactly as before.
     headline: str | None = None
     headline_color: str = "bad"  # "bad" | "good" | "neutral"
+    # A move comment mark rendered as a badge at the board's top-right, e.g.
+    # "!!" for the answer or "??" for a trap.  Optional: None draws nothing.
+    annotation: str | None = None
+    annotation_color: str = "bad"  # "bad" | "good" | "neutral"
     # Camera punch: 1.0 is no zoom.  Values above 1 crop a smaller window around
     # ``zoom_center`` and scale it back up, which is what makes the drama edit's
     # wrong-move and answer beats land.  Clamped to ZOOM_MAX when rendered so a
@@ -331,6 +340,11 @@ def _arrow_color(name: str):
 
 def _headline_color(name: str):
     """Fill for the headline: red, green, or white."""
+    return {"bad": ACCENT_BAD, "good": ACCENT_GOOD}.get(name, TEXT_MAIN)
+
+
+def _annotation_color(name: str):
+    """Fill for a move annotation: red for a blunder, green for a good move."""
     return {"bad": ACCENT_BAD, "good": ACCENT_GOOD}.get(name, TEXT_MAIN)
 
 
@@ -938,6 +952,35 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
         [board_left, board_top, board_left + BOARD, board_top + BOARD],
         outline=edge_colour, width=3,
     )
+
+    if spec.annotation:
+        # A comment mark belongs to the board, so it sits in the top-right just
+        # above the pieces rather than in the caption band.  The dark badge is
+        # what keeps it legible when a headline reaches the same corner.
+        ann_font = _first_font(_TEXT_FONTS, ANNOTATION_SIZE, "!")
+        ax = board_left + BOARD - 40
+        ay = board_top + 10
+        bbox = draw.textbbox(
+            (ax, ay),
+            spec.annotation,
+            font=ann_font,
+            anchor="rs",
+            stroke_width=ANNOTATION_STROKE,
+        )
+        draw.rounded_rectangle(
+            (bbox[0] - 14, bbox[1] - 10, bbox[2] + 14, bbox[3] + 10),
+            radius=20,
+            fill=(14, 14, 16),
+        )
+        draw.text(
+            (ax, ay),
+            spec.annotation,
+            font=ann_font,
+            fill=_annotation_color(spec.annotation_color),
+            anchor="rs",
+            stroke_width=ANNOTATION_STROKE,
+            stroke_fill=(14, 14, 16),
+        )
 
     if spec.info is not None:
         # bottom_text keeps its own anchor; the band stops above it so players

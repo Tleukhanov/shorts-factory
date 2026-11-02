@@ -7,6 +7,7 @@ board, the coloured arrows, metadata, and a real render without TTS.
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 
 import pytest
@@ -63,7 +64,9 @@ def _wrong_moves(puzzle, count=2):
 
 def test_config_loads_the_repo_file(drama_cfg):
     assert drama_cfg.club_name
-    assert drama_cfg.hook_label == "НАЙДИ МАТ"
+    assert drama_cfg.hook_label_mate == "НАЙДИ МАТ"
+    assert drama_cfg.hook_label_endgame == "ВЫИГРАЙ ЭНДШПИЛЬ"
+    assert drama_cfg.hook_label_tactic == "НАЙДИ ЛУЧШИЙ ХОД"
     assert drama_cfg.answer_label == "ВОТ ОТВЕТ"
     assert drama_cfg.board_style == "mono"
     assert drama_cfg.beat_sync is True
@@ -74,9 +77,40 @@ def test_config_loads_the_repo_file(drama_cfg):
 
 def test_missing_config_falls_back_to_defaults(tmp_path):
     cfg = drama.DramaConfig.from_file(tmp_path / "absent.json")
-    assert cfg.hook_label == "НАЙДИ МАТ"
+    assert cfg.hook_label_mate == "НАЙДИ МАТ"
+    assert cfg.hook_label_endgame == "ВЫИГРАЙ ЭНДШПИЛЬ"
+    assert cfg.hook_label_tactic == "НАЙДИ ЛУЧШИЙ ХОД"
     assert cfg.board_style == "mono"
     assert cfg.music_path.endswith(".wav")
+
+
+def _with_themes(puzzle: puzzle_db.Puzzle, *themes: str) -> puzzle_db.Puzzle:
+    return dataclasses.replace(puzzle, themes=frozenset(themes))
+
+
+def test_hook_label_matches_the_puzzle_type(sample_puzzle, drama_cfg):
+    for themes in (("mate",), ("mateIn2",), ("mateIn3", "sacrifice")):
+        assert (
+            drama._hook_label(_with_themes(sample_puzzle, *themes), drama_cfg)
+            == drama_cfg.hook_label_mate
+        )
+    for themes in (("endgame",), ("pawnEndgame",), ("zugzwang",), ("opposition",)):
+        assert (
+            drama._hook_label(_with_themes(sample_puzzle, *themes), drama_cfg)
+            == drama_cfg.hook_label_endgame
+        )
+    for themes in (("fork",), ("pin", "hangingPiece"), ("quietMove",)):
+        assert (
+            drama._hook_label(_with_themes(sample_puzzle, *themes), drama_cfg)
+            == drama_cfg.hook_label_tactic
+        )
+
+
+def test_legacy_hook_label_still_overrides_the_theme(sample_puzzle):
+    cfg = drama.DramaConfig(hook_label="СТАРЫЙ ЗАГОЛОВОК")
+    assert drama._hook_label(_with_themes(sample_puzzle, "mateIn2"), cfg) == (
+        "СТАРЫЙ ЗАГОЛОВОК"
+    )
 
 
 def test_music_resolution_prefers_config_then_first_track(tmp_path):
@@ -160,7 +194,7 @@ def test_plan_has_hook_wrong_answer_mate_and_cta(sample_puzzle, drama_cfg):
     frames = plan.clip_plan.frames
 
     hook = frames[0]
-    assert hook.headline == drama_cfg.hook_label
+    assert hook.headline == drama._hook_label(sample_puzzle, drama_cfg)
     assert hook.arrow is None
     assert not hook.highlight_squares
     assert hook.board_style == "mono"
@@ -205,9 +239,76 @@ def test_plan_has_hook_wrong_answer_mate_and_cta(sample_puzzle, drama_cfg):
 def test_plan_skips_wrong_beats_without_an_engine(sample_puzzle, drama_cfg):
     plan = drama.plan_drama(sample_puzzle, [], drama_cfg)
     headlines = [frame.headline for frame in plan.clip_plan.frames]
-    assert drama_cfg.hook_label in headlines
+    assert drama._hook_label(sample_puzzle, drama_cfg) in headlines
     assert drama_cfg.answer_label in headlines
     assert "МАТ!" in headlines
+
+
+def test_wrong_moves_animate_before_the_red_landing(sample_puzzle, drama_cfg):
+    wrongs = _wrong_moves(sample_puzzle)
+    plan = drama.plan_drama(sample_puzzle, wrongs, drama_cfg)
+    frames = plan.clip_plan.frames
+    start_fen = sample_puzzle.puzzle_fen()
+
+    assert len(plan.wrong_frame_indices) == len(wrongs)
+    for index in plan.wrong_frame_indices:
+        slides = frames[index - drama.SLIDE_STEPS : index]
+        assert len(slides) == drama.SLIDE_STEPS
+        assert all(frame.moving is not None for frame in slides)
+        assert all(frame.fen == start_fen for frame in slides)
+        assert frames[index].moving is None
+        assert frames[index].annotation == "??"
+
+
+def test_annotations_mark_wrong_answer_line_and_mate(sample_puzzle, drama_cfg):
+    plan = drama.plan_drama(sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg)
+    frames = plan.clip_plan.frames
+
+    for index in plan.wrong_frame_indices:
+        assert frames[index].annotation == "??"
+        assert frames[index].annotation_color == "bad"
+
+    answer = frames[plan.answer_frame_index]
+    assert answer.annotation == "!!"
+    assert answer.annotation_color == "good"
+
+    assert plan.move_block_starts
+    for move_index, start in enumerate(plan.move_block_starts):
+        landing = frames[start + drama.SLIDE_STEPS]
+        if move_index % 2 == 0:
+            assert landing.annotation == "!"
+            assert landing.annotation_color == "good"
+        else:
+            assert landing.annotation is None
+
+    mate = frames[plan.mate_frame_index]
+    assert mate.annotation == "#"
+    assert mate.annotation_color == "good"
+
+
+def test_music_volume_is_clearly_audible():
+    # The user's reference is music-driven; a bed at 0.24 disappears under the
+    # SFX and the phone speaker.
+    assert drama.MUSIC_VOLUME >= 0.45
+
+
+def test_zoom_punch_ramps_over_the_slides(sample_puzzle, drama_cfg):
+    plan = drama.plan_drama(sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg)
+    frames = plan.clip_plan.frames
+
+    for index in plan.wrong_frame_indices:
+        zooms = [frame.zoom for frame in frames[index - drama.SLIDE_STEPS : index]]
+        assert zooms == sorted(zooms)
+        assert zooms[0] < zooms[-1]
+        assert frames[index].zoom == zooms[-1] == 1.06
+
+    assert plan.move_block_starts
+    for start in plan.move_block_starts:
+        slides = frames[start : start + drama.SLIDE_STEPS]
+        zooms = [frame.zoom for frame in slides]
+        assert zooms == sorted(zooms)
+        assert zooms[0] < zooms[-1]
+        assert frames[start + drama.SLIDE_STEPS].zoom == zooms[-1] == 1.02
 
 
 def test_beat_sync_snaps_move_blocks(sample_puzzle, drama_cfg, tmp_path, monkeypatch):
@@ -291,6 +392,36 @@ def test_arrow_colour_palette():
     assert board._highlight_color("good") == board.HIGHLIGHT_GOOD
     assert board._highlight_color("alt") == board.HIGHLIGHT_ALT
     assert board._highlight_color("neutral") == board.HIGHLIGHT
+    assert board._annotation_color("good") == board.ACCENT_GOOD
+    assert board._annotation_color("bad") == board.ACCENT_BAD
+    assert board._annotation_color("neutral") == board.TEXT_MAIN
+
+
+def test_annotation_renders_at_the_board_corner(tmp_path):
+    from PIL import Image
+
+    out = board.render_frame(
+        board.FrameSpec(
+            fen="8/8/8/8/8/8/8/8 w - - 0 1",
+            top_text="",
+            bottom_text="",
+            board_style="mono",
+            annotation="!!",
+            annotation_color="good",
+        ),
+        tmp_path / "annotation.png",
+    )
+
+    with Image.open(out) as img:
+        rgb = img.convert("RGB")
+        corner = rgb.crop(
+            (board.FRAME_W // 2, 0, board.FRAME_W, board.BOARD_TOP)
+        )
+        raw = corner.tobytes()
+        assert any(
+            raw[i + 1] > 120 and raw[i + 1] > raw[i] + 30
+            for i in range(0, len(raw), 3)
+        ), "the green annotation did not render above the board"
 
 
 # --------------------------------------------------------------------------
@@ -308,7 +439,8 @@ def test_metadata_has_title_solution_links_and_hashtags(
     meta = drama.write_metadata(plan, out, drama_cfg)
     text = meta.read_text(encoding="utf-8")
 
-    assert "Найди мат" in text
+    hook = drama._hook_label(sample_puzzle, drama_cfg)
+    assert (hook[:1] + hook[1:].lower()) in text
     assert drama_cfg.lichess_team_url in text
     assert drama_cfg.hashtags[0] in text
     assert "Решение:" in text

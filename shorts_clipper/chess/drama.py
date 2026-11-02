@@ -31,9 +31,9 @@ from shorts_clipper.utils.ffmpeg_path import ffmpeg_path
 log = logging.getLogger(__name__)
 
 # The drama clip has no narration, so the music is the voice of the format.  It
-# sits well above the tactic bed (0.08) and still leaves the SFX room to cut
-# through, which is what the punches are for.
-MUSIC_VOLUME = 0.24
+# has to be clearly audible rather than a background bed; the limiter in
+# ``add_bed`` keeps a hot track from clipping, and the SFX cuts through on top.
+MUSIC_VOLUME = 0.55
 
 # Frame holds.  The hook is the only slow beat (the viewer has to read the
 # position); wrong moves and slide frames are fast cuts; the mate and the CTA
@@ -64,7 +64,14 @@ class DramaConfig:
     music_path: str = "data/music/phonk.wav"
     beat_sync: bool = True
     max_wrong_moves: int = 2
-    hook_label: str = "НАЙДИ МАТ"
+    # The hook has to name the puzzle's actual task: a mate puzzle and an endgame
+    # zugzwang are different promises, and the old single label claimed "mate"
+    # over both.  ``hook_label`` stays as a legacy override so old config files
+    # keep loading; when it is empty the theme decides (see :func:`_hook_label`).
+    hook_label: str = ""
+    hook_label_mate: str = "НАЙДИ МАТ"
+    hook_label_endgame: str = "ВЫИГРАЙ ЭНДШПИЛЬ"
+    hook_label_tactic: str = "НАЙДИ ЛУЧШИЙ ХОД"
     wrong_labels: list[str] = dataclasses.field(
         default_factory=lambda: ["НЕ ТОТ ХОД", "МИМО", "ТАК НЕ НАДО"]
     )
@@ -121,6 +128,23 @@ def _side_label(color: str | None) -> str:
     if color == "black":
         return "Ход чёрных"
     return "Чей ход?"
+
+
+def _hook_label(puzzle: puzzle_db.Puzzle, cfg: DramaConfig) -> str:
+    """The hook that matches the puzzle's actual task.
+
+    A mate puzzle, an endgame zugzwang and a tactical best-move puzzle make three
+    different promises.  Claiming "find the mate" over a position with no mate is
+    the one thing a chess audience checks first, so the theme decides the hook.
+    """
+    if cfg.hook_label:
+        return cfg.hook_label
+    themes = set(puzzle.themes)
+    if "mate" in themes or any(theme.startswith("mateIn") for theme in themes):
+        return cfg.hook_label_mate
+    if themes & {"endgame", "pawnEndgame", "zugzwang", "opposition"}:
+        return cfg.hook_label_endgame
+    return cfg.hook_label_tactic
 
 
 def find_wrong_moves(
@@ -223,8 +247,14 @@ def _slide_frames(
     dst: str,
     hidden: tuple[str, ...],
     board_style: str,
+    zoom: float = 1.0,
 ) -> list[FrameSpec]:
-    """Five interpolated frames for one move, so the piece slides in."""
+    """Five interpolated frames for one move, so the piece slides in.
+
+    The camera punch is ramped over the slide instead of being switched on at
+    the landing: by the time the move arrives the frame is already closing in,
+    which is what reads as a punch rather than a jump cut to a static crop.
+    """
     return [
         FrameSpec(
             fen=fen,
@@ -234,6 +264,7 @@ def _slide_frames(
             moving=(piece_symbol, src, dst, step / SLIDE_STEPS),
             hidden_squares=hidden,
             board_style=board_style,
+            zoom=1.0 + (zoom - 1.0) * step / SLIDE_STEPS,
         )
         for step in range(1, SLIDE_STEPS + 1)
     ]
@@ -318,7 +349,7 @@ def plan_drama(
             bottom_text=_side_label(puzzle.solver_color()),
             accent="neutral",
             board_style=cfg.board_style,
-            headline=cfg.hook_label,
+            headline=_hook_label(puzzle, cfg),
             headline_color="bad",
             zoom=1.0,
         )
@@ -337,8 +368,30 @@ def plan_drama(
         applied_wrongs.append(wrong)
         src = chess.square_name(move.from_square)
         dst = chess.square_name(move.to_square)
+        san = wrong.san or board.san(move)
+        piece = board.piece_at(move.from_square)
+        symbol = piece.symbol() if piece is not None else "p"
+        captured = dst if board.is_capture(move) else None
+        hidden = tuple(dict.fromkeys(s for s in (src, dst, captured) if s))
+
+        # The trap slides in from the original position, exactly like the real
+        # answer, and only then turns red.  Showing the wrong move instantly made
+        # it read as a still while the solution line moved.
+        frames.extend(
+            _slide_frames(
+                fen=board.fen(),
+                san=san,
+                piece_symbol=symbol,
+                src=src,
+                dst=dst,
+                hidden=hidden,
+                board_style=cfg.board_style,
+                zoom=1.06,
+            )
+        )
+        holds.extend([SLIDE_SECONDS] * SLIDE_STEPS)
+
         after = board.copy(stack=False)
-        san = wrong.san or after.san(move)
         after.push(move)
         if cfg.wrong_labels:
             label = cfg.wrong_labels[index % len(cfg.wrong_labels)]
@@ -356,6 +409,8 @@ def plan_drama(
                 arrow_color="bad",
                 headline=label,
                 headline_color="bad",
+                annotation="??",
+                annotation_color="bad",
                 zoom=1.06,
             )
         )
@@ -388,6 +443,8 @@ def plan_drama(
             arrow_color="good",
             headline=cfg.answer_label,
             headline_color="good",
+            annotation="!!",
+            annotation_color="good",
             zoom=1.08,
         )
     )
@@ -399,7 +456,7 @@ def plan_drama(
     line_board = board.copy(stack=False)
     solution_sans: list[str] = []
     move_block_starts: list[int] = []
-    for uci in puzzle.solution_moves:
+    for index, uci in enumerate(puzzle.solution_moves):
         try:
             move = chess.Move.from_uci(uci)
         except ValueError:
@@ -426,14 +483,16 @@ def plan_drama(
                 dst=dst,
                 hidden=hidden,
                 board_style=cfg.board_style,
+                zoom=1.02,
             )
         )
         holds.extend([SLIDE_SECONDS] * SLIDE_STEPS)
 
         line_board.push(move)
-        # Alternate the landing punch so the line pulses instead of sitting at
-        # one zoom for every move, which would read as a static overlay.
-        landing_zoom = 1.02 if (len(solution_sans) - 1) % 2 == 0 else 1.0
+        # Solver moves get the comment mark; the opponent's forced replies are
+        # context, so they stay unmarked.  Every move block still gets the same
+        # ramped punch so the line keeps its pulse.
+        solver_move = index % 2 == 0
         frames.append(
             FrameSpec(
                 fen=line_board.fen(),
@@ -444,7 +503,9 @@ def plan_drama(
                 arrow=(src, dst),
                 board_style=cfg.board_style,
                 arrow_color="good",
-                zoom=landing_zoom,
+                annotation="!" if solver_move else None,
+                annotation_color="good",
+                zoom=1.02,
             )
         )
         holds.append(LANDING_SECONDS)
@@ -465,6 +526,8 @@ def plan_drama(
             board_style=cfg.board_style,
             headline=final_headline,
             headline_color="good",
+            annotation="#" if is_mate else None,
+            annotation_color="good",
             zoom=1.05,
         )
     )
@@ -519,7 +582,8 @@ def write_metadata(
     """Write the title/description/links/hashtags next to the clip."""
     out = Path(out_path)
     meta_path = out.with_suffix(".txt")
-    hook_title = (cfg.hook_label[:1] + cfg.hook_label[1:].lower()).strip()
+    hook = _hook_label(plan.puzzle, cfg)
+    hook_title = (hook[:1] + hook[1:].lower()).strip()
     lines = [
         f"{hook_title} | Шахматный клуб {cfg.club_name}",
         "",

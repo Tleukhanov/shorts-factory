@@ -513,7 +513,7 @@ def plan_drama(
     line_board = board.copy(stack=False)
     solution_sans: list[str] = []
     move_block_starts: list[int] = []
-    last_dst = ""
+    mate_king_square = ""
     for index, uci in enumerate(puzzle.solution_moves):
         try:
             move = chess.Move.from_uci(uci)
@@ -547,31 +547,32 @@ def plan_drama(
         holds.extend([SLIDE_SECONDS] * SLIDE_STEPS)
 
         line_board.push(move)
-        last_dst = dst
         # Solver moves get a badge; the opponent's forced replies are context,
         # so they stay unmarked.  Every move block still gets the same ramped
         # punch so the line keeps its pulse.
         solver_move = index % 2 == 0
         is_mate_now = line_board.is_checkmate()
+        if is_mate_now:
+            mate_king_square = chess.square_name(line_board.king(line_board.turn))
         if solver_move:
-            if is_mate_now:
-                kind = "best"
-            elif index == 0:
-                kind = "great"
-            else:
-                kind = "excellent"
-            badge: tuple[str, str] | None = (dst, kind)
+            kind = "mate" if is_mate_now else "good"
+            badge_square = mate_king_square if is_mate_now else dst
+            badge: tuple[str, str] | None = (badge_square, kind)
             accent = kind
+            highlights = (
+                (src, dst, mate_king_square) if is_mate_now else (src, dst)
+            )
         else:
             badge = None
             accent = "good"
+            highlights = (src, dst)
         frames.append(
             FrameSpec(
                 fen=line_board.fen(),
                 top_text="",
                 bottom_text=san,
                 accent=accent,
-                highlight_squares=(src, dst),
+                highlight_squares=highlights,
                 arrow=(src, dst),
                 board_style=cfg.board_style,
                 arrow_color="good",
@@ -593,11 +594,12 @@ def plan_drama(
             fen=line_board.fen(),
             top_text="",
             bottom_text=final_bottom,
-            accent="best" if is_mate else "good",
+            accent="mate" if is_mate else "good",
+            highlight_squares=(mate_king_square,) if is_mate and mate_king_square else (),
             board_style=cfg.board_style,
             headline=final_headline,
             headline_color="good",
-            badge=(last_dst, "best") if is_mate and last_dst else None,
+            badge=(mate_king_square, "mate") if is_mate and mate_king_square else None,
             zoom=1.05,
         )
     )

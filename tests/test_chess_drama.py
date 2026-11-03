@@ -10,6 +10,7 @@ from __future__ import annotations
 import dataclasses
 from pathlib import Path
 
+import chess
 import pytest
 
 from shorts_clipper.chess import beats, board, drama, puzzle_db
@@ -256,9 +257,11 @@ def test_plan_has_hook_wrong_answer_mate_and_cta(sample_puzzle, drama_cfg):
 
     mate = frames[plan.mate_frame_index]
     assert mate.headline == drama_cfg.final_mate_label
-    assert mate.accent == "best"
-    assert mate.badge == (_last_destination(sample_puzzle), "best")
-    assert chess.Board(mate.fen).is_checkmate()
+    assert mate.accent == "mate"
+    mate_board = chess.Board(mate.fen)
+    assert mate_board.is_checkmate()
+    mate_king = chess.square_name(mate_board.king(mate_board.turn))
+    assert mate.badge == (mate_king, "mate")
 
     line_landings = [
         frames[start + drama.SLIDE_STEPS] for start in plan.move_block_starts
@@ -270,8 +273,14 @@ def test_plan_has_hook_wrong_answer_mate_and_cta(sample_puzzle, drama_cfg):
             assert frame.badge is None
         else:
             assert frame.badge is not None
-            assert frame.badge[0] == frame.arrow[1]
-            assert frame.badge[1] in {"great", "excellent", "best"}
+            if frame.badge[1] == "mate":
+                board_after = chess.Board(frame.fen)
+                assert frame.badge[0] == chess.square_name(
+                    board_after.king(board_after.turn)
+                )
+            else:
+                assert frame.badge[0] == frame.arrow[1]
+                assert frame.badge[1] == "good"
 
     assert frames[-1].cta == (drama_cfg.cta_top, drama_cfg.cta_bottom)
     assert len(plan.clip_plan.holds) == len(frames)
@@ -328,19 +337,19 @@ def test_badges_mark_wrong_answer_line_and_mate(sample_puzzle, drama_cfg):
             assert landing.accent == "good"
             continue
         assert landing.badge is not None
-        assert landing.badge[0] == landing.arrow[1]
         assert landing.accent == landing.badge[1]
         final_move = move_index == len(plan.solution_sans) - 1
         if final_move and plan.is_mate:
-            assert landing.badge[1] == "best"
-        elif move_index == 0:
-            assert landing.badge[1] == "great"
+            assert landing.badge[1] == "mate"
         else:
-            assert landing.badge[1] == "excellent"
+            assert landing.badge[1] == "good"
+            assert landing.badge[0] == landing.arrow[1]
 
     mate = frames[plan.mate_frame_index]
-    assert mate.badge == (_last_destination(sample_puzzle), "best")
-    assert mate.accent == "best"
+    mate_board = chess.Board(mate.fen)
+    mate_king = chess.square_name(mate_board.king(mate_board.turn))
+    assert mate.badge == (mate_king, "mate")
+    assert mate.accent == "mate"
     assert mate.annotation is None
 
 
@@ -491,7 +500,7 @@ def test_arrow_colour_palette():
     assert board._arrow_color("bad") == board.ARROW_BAD
     assert board._arrow_color("alt") == board.ARROW_ALT
     assert board._highlight_color("bad") == board.HIGHLIGHT_BAD
-    assert board._highlight_color("good") == board.HIGHLIGHT_GOOD
+    assert board._highlight_color("good") == board.BADGE_GOOD
     assert board._highlight_color("alt") == board.HIGHLIGHT_ALT
     assert board._highlight_color("neutral") == board.HIGHLIGHT
     assert board._annotation_color("good") == board.ACCENT_GOOD
@@ -501,13 +510,15 @@ def test_arrow_colour_palette():
     # A badge kind is a valid accent name too, so the highlight and the circle
     # cannot drift apart.
     for kind, colour in (
+        ("good", board.BADGE_GOOD),
         ("brilliant", board.BADGE_BRILLIANT),
-        ("great", board.BADGE_GREAT),
-        ("best", board.BADGE_BEST),
-        ("excellent", board.BADGE_BEST),
-        ("inaccuracy", board.BADGE_INACCURACY),
+        ("interesting", board.BADGE_INTERESTING),
         ("mistake", board.BADGE_MISTAKE),
+        ("dubious", board.BADGE_DUBIOUS),
         ("blunder", board.BADGE_BLUNDER),
+        ("mate", board.BADGE_MATE),
+        ("only", board.BADGE_ONLY),
+        ("zugzwang", board.BADGE_ZUGZWANG),
     ):
         assert board._badge_color(kind) == colour
         assert board._highlight_color(kind) == colour
@@ -530,7 +541,7 @@ def _badge_centre(square: str) -> tuple[float, float]:
     [
         ("blunder", board.BADGE_BLUNDER),
         ("brilliant", board.BADGE_BRILLIANT),
-        ("best", board.BADGE_BEST),
+        ("mate", board.BADGE_MATE),
     ],
 )
 def test_square_badge_renders_in_its_kind_colour(tmp_path, kind, colour):
@@ -567,7 +578,7 @@ def test_square_badge_renders_in_its_kind_colour(tmp_path, kind, colour):
             for pixel in colors
         ), f"{kind} badge colour missing from the destination square"
         assert any(pixel == board.BADGE_BORDER for pixel in colors), (
-            "the badge has no white ring"
+            "the badge has no dark edge"
         )
 
 

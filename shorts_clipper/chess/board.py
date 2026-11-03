@@ -110,44 +110,59 @@ HEADLINE_STROKE = 9
 # stroke and badge behind them keep the mark readable against the headline.
 ANNOTATION_SIZE = 110
 ANNOTATION_STROKE = 10
-# Chess.com-style square badges.  A move is marked on its *destination* square
-# with a small round badge instead of a large mark floating above the board.
-# The colours are the ones the reference Short and chess.com use, and the same
-# names drive the square highlight so a red blunder frame reads red everywhere.
-BADGE_BRILLIANT = (38, 194, 163)  # #26c2a3
-BADGE_GREAT = (91, 139, 160)  # #5b8ba0
-BADGE_BEST = (129, 182, 76)  # #81b64c
-BADGE_BOOK = (168, 136, 101)  # #a88865
-BADGE_INACCURACY = (247, 198, 49)  # #f7c631
-BADGE_MISTAKE = (229, 143, 42)  # #e58f2a
-BADGE_BLUNDER = (202, 52, 49)  # #ca3431
+# Lichess analysis badges.  These are the exact annotation vocabulary the
+# Lichess study/analysis board uses: !, ?, !!, ??, !?, ?!, #, plus the
+# only-move and zugzwang marks.  A move is marked on its *destination* square
+# with a small round badge.  The same kind drives the square highlight so a
+# blunder reads red everywhere.
+BADGE_GOOD = (127, 166, 80)  # #7fa650, Lichess green
+BADGE_BRILLIANT = BADGE_GOOD
+BADGE_INTERESTING = BADGE_GOOD
+BADGE_MISTAKE = (230, 145, 44)  # #e6912c, Lichess orange
+BADGE_DUBIOUS = (214, 79, 138)  # #d64f8a, Lichess pink
+BADGE_BLUNDER = (202, 52, 49)  # #ca3431, Lichess red
+BADGE_MATE = BADGE_BLUNDER
+BADGE_ONLY = (74, 74, 74)
+BADGE_ZUGZWANG = (74, 74, 74)
 BADGE_COLORS = {
+    "good": BADGE_GOOD,
     "brilliant": BADGE_BRILLIANT,
-    "great": BADGE_GREAT,
-    "best": BADGE_BEST,
-    "excellent": BADGE_BEST,
-    "good": BADGE_BEST,
-    "book": BADGE_BOOK,
-    "inaccuracy": BADGE_INACCURACY,
+    "interesting": BADGE_INTERESTING,
     "mistake": BADGE_MISTAKE,
+    "dubious": BADGE_DUBIOUS,
     "blunder": BADGE_BLUNDER,
+    "mate": BADGE_MATE,
+    "only": BADGE_ONLY,
+    "zugzwang": BADGE_ZUGZWANG,
+    # Backward-compatible aliases used by the earlier drama frames.
+    "great": BADGE_GOOD,
+    "best": BADGE_GOOD,
+    "excellent": BADGE_GOOD,
+    "book": BADGE_ONLY,
+    "inaccuracy": BADGE_DUBIOUS,
 }
 # The glyph may be one or two characters; the renderer fits it to the circle.
 BADGE_SYMBOLS = {
+    "good": "!",
     "brilliant": "!!",
+    "interesting": "!?",
+    "mistake": "?",
+    "dubious": "?!",
+    "blunder": "??",
+    "mate": "#",
+    "only": "□",
+    "zugzwang": "⦿",
+    # Backward-compatible aliases.
     "great": "!",
-    "best": "★",
-    "excellent": "✓",
-    "good": "✓",
+    "best": "!",
+    "excellent": "!",
     "book": "B",
     "inaccuracy": "?!",
-    "mistake": "?",
-    "blunder": "??",
 }
-# Diameter as a share of a square, and the heavy white ring that makes the
-# badge separate from a bright or busy board.
+# Diameter as a share of a square.  Lichess's badges are solid circles with a
+# thin dark edge, not the heavy white ring Chess.com uses.
 BADGE_SIZE = 0.26
-BADGE_BORDER = (252, 252, 252)
+BADGE_BORDER = (40, 40, 40)
 # Punch-in bounds for the drama edit.  Past 1.12 the headline and the info band
 # lose too many pixels to stay legible on a phone, and below 1.0 there is no
 # punch at all.
@@ -394,7 +409,6 @@ def _highlight_color(accent: str):
     return {
         **BADGE_COLORS,
         "bad": HIGHLIGHT_BAD,
-        "good": HIGHLIGHT_GOOD,
         "alt": HIGHLIGHT_ALT,
     }.get(accent, HIGHLIGHT)
 

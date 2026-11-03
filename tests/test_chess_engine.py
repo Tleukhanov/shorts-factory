@@ -129,12 +129,13 @@ class EngineResolutionTests(unittest.TestCase):
                 self.assertEqual(engine.binary(), Path("C:/bin/stockfish.exe"))
 
     def test_cached_download_is_the_last_resort(self):
+        suffix = ".exe" if os.name == "nt" else ""
         with mock.patch("shutil.which", return_value=None):
             with self._as_models_dir() as models:
                 root = models / engine.ENGINE_SUBDIR
                 root.mkdir(parents=True)
-                (root / "stockfish-sf_18.exe").write_bytes(b"old")
-                newer = root / "stockfish-sf_19.exe"
+                (root / f"stockfish-sf_18{suffix}").write_bytes(b"old")
+                newer = root / f"stockfish-sf_19{suffix}"
                 newer.write_bytes(b"new")
                 os.utime(newer, (2_000_000_000, 2_000_000_000))
                 self.assertEqual(engine.cached_binary(), newer)
@@ -552,8 +553,9 @@ class DownloadTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             archive = root / "stockfish-windows-x86-64.zip"
+            member = "stockfish/stockfish.exe" if os.name == "nt" else "stockfish/stockfish"
             with zipfile.ZipFile(archive, "w") as zf:
-                zf.writestr("stockfish/stockfish-windows-x86-64.exe", b"MZ fake engine")
+                zf.writestr(member, b"MZ fake engine")
                 zf.writestr("stockfish/src/search.cpp", b"int main(){}")
                 zf.writestr("stockfish/README.md", b"# source")
             installed = engine.install_archive(archive, "sf_19", root / "models")
@@ -626,11 +628,13 @@ class DownloadTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             os.environ[engine.MODELS_DIR_ENV] = str(root)
-            with mock.patch.object(
-                engine, "latest_release", side_effect=OSError("offline")
-            ):
-                self.assertIsNone(engine.ensure_stockfish())
-            self.assertFalse((root / engine.ENGINE_SUBDIR / engine.installed_name("sf_19")).exists())
+            os.environ.pop(engine.ENGINE_ENV, None)
+            with mock.patch("shutil.which", return_value=None):
+                with mock.patch.object(engine, "latest_release", side_effect=OSError("offline")):
+                    self.assertIsNone(engine.ensure_stockfish())
+            self.assertFalse(
+                (root / engine.ENGINE_SUBDIR / engine.installed_name("sf_19")).exists()
+            )
 
     def test_a_bad_checksum_is_a_failure_not_a_quiet_install(self):
         """The published sha256 is checked; a mismatch must raise, not warn."""
@@ -639,8 +643,9 @@ class DownloadTests(unittest.TestCase):
         import tempfile
 
         buffer = io.BytesIO()
+        member = "stockfish/stockfish.exe" if os.name == "nt" else "stockfish/stockfish"
         with zipfile.ZipFile(buffer, "w") as zf:
-            zf.writestr("stockfish/stockfish.exe", b"MZ not what was published")
+            zf.writestr(member, b"MZ not what was published")
         payload = buffer.getvalue()
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -658,9 +663,7 @@ class DownloadTests(unittest.TestCase):
             }
             with mock.patch.object(engine, "latest_release", return_value=release):
                 with mock.patch.object(engine, "_platform_keys", lambda: ("windows", "x86-64")):
-                    with mock.patch(
-                        "urllib.request.urlopen", return_value=_FakeResponse(payload)
-                    ):
+                    with mock.patch("urllib.request.urlopen", return_value=_FakeResponse(payload)):
                         # The digest above matches, so this installs; flip it and it must fail.
                         installed = engine.download_stockfish()
                         self.assertTrue(installed.is_file())
@@ -797,7 +800,9 @@ class LiveEngineTests(unittest.TestCase):
     def test_the_engine_does_not_call_the_winning_move_a_blunder(self):
         """16.Qb8+! is the move that wins the game; the material path flags it."""
         game = _opera_game()
-        material = {d.san for d in analysis.find_decisions(game, use_engine=False, limit=6, min_ply=6)}
+        material = {
+            d.san for d in analysis.find_decisions(game, use_engine=False, limit=6, min_ply=6)
+        }
         self.assertIn(OPERA_WINNING_MOVE, material, "the material path's known false positive")
         found = analysis.find_decisions(
             game, use_engine=True, limit=6, min_ply=6, critical_cp=200, depth=12

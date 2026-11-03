@@ -46,9 +46,12 @@ class DeleteClipTraversalTests(unittest.TestCase):
         self.assertTrue(self.decoy.exists())
 
     def test_backslash_traversal_rejected(self):
+        # On POSIX a backslash is an ordinary filename character, so the path is
+        # simply missing (404) rather than a Windows-style traversal (400).  Both
+        # are safe rejections as long as the outside file is untouched.
         with self.assertRaises(HTTPException) as ctx:
             server.delete_clip("..\\decoy.mp4")
-        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn(ctx.exception.status_code, {400, 404})
         self.assertTrue(self.decoy.exists())
 
     def test_normal_clip_deleted(self):
@@ -224,9 +227,7 @@ class PublishClipThreadsVideoIdTests(unittest.TestCase):
             "tags": ["cs2"],
             "publish_status": "idle",
         }
-        (out / "final_metadata_1.json").write_text(
-            json.dumps(meta), encoding="utf-8"
-        )
+        (out / "final_metadata_1.json").write_text(json.dumps(meta), encoding="utf-8")
         return clip
 
     def test_publish_route_passes_video_id_from_sidecar(self):
@@ -242,8 +243,10 @@ class PublishClipThreadsVideoIdTests(unittest.TestCase):
             self.assertTrue(clip.exists())
 
             settings = CoreSettings(output_dir=str(out), publish_platforms=["youtube"])
-            with mock.patch.object(server.Settings, "from_env", return_value=settings), \
-                 mock.patch("shorts_clipper.publishers.manager.PublishingEngine") as mock_engine:
+            with (
+                mock.patch.object(server.Settings, "from_env", return_value=settings),
+                mock.patch("shorts_clipper.publishers.manager.PublishingEngine") as mock_engine,
+            ):
                 mock_engine.return_value.publish.return_value = {
                     "youtube": PublishResult(
                         "youtube",
@@ -259,9 +262,7 @@ class PublishClipThreadsVideoIdTests(unittest.TestCase):
                 asyncio.run(tasks())
 
         mock_engine.return_value.publish.assert_called_once()
-        self.assertEqual(
-            mock_engine.return_value.publish.call_args.kwargs["video_id"], "vid42"
-        )
+        self.assertEqual(mock_engine.return_value.publish.call_args.kwargs["video_id"], "vid42")
 
 
 class WhisperLanguageTests(unittest.TestCase):
@@ -289,15 +290,17 @@ class WhisperLanguageTests(unittest.TestCase):
         fake_model_call = mock.MagicMock(return_value=object())
         fake_module.WhisperModel = fake_model_call
 
-        with mock.patch.dict(sys.modules, {"faster_whisper": fake_module}), mock.patch.object(
-            whisper_mod, "_global_model", None
-        ), mock.patch.object(
-            Settings,
-            "from_env",
-            return_value=Settings(
-                models_dir=Path("data/models"),
-                whisper_device="cpu",
-                whisper_compute_type="int8",
+        with (
+            mock.patch.dict(sys.modules, {"faster_whisper": fake_module}),
+            mock.patch.object(whisper_mod, "_global_model", None),
+            mock.patch.object(
+                Settings,
+                "from_env",
+                return_value=Settings(
+                    models_dir=Path("data/models"),
+                    whisper_device="cpu",
+                    whisper_compute_type="int8",
+                ),
             ),
         ):
             whisper_mod.get_whisper_model()

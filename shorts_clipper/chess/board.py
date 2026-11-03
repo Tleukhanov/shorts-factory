@@ -1012,14 +1012,10 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
                 if tinted:
                     # A Lichess-style translucent tint keeps the square and the
                     # piece readable; a solid fill reads as a warning card.
-                    tile = Image.new(
-                        "RGBA", (int(step), int(step)), (*highlight_colour, 150)
-                    )
+                    tile = Image.new("RGBA", (int(step), int(step)), (*highlight_colour, 150))
                     img.paste(tile, (int(round(x0)), int(round(y0))), tile)
                 else:
-                    draw.rectangle(
-                        [x0, y0, x0 + step, y0 + step], fill=highlight_colour
-                    )
+                    draw.rectangle([x0, y0, x0 + step, y0 + step], fill=highlight_colour)
 
     # Coordinates live in the square corner, in the opposite square colour, so
     # they stay readable without a separate gutter.

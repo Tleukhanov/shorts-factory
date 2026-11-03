@@ -159,10 +159,10 @@ BADGE_SYMBOLS = {
     "book": "B",
     "inaccuracy": "?!",
 }
-# Diameter as a share of a square.  Lichess's badges are solid circles with a
-# thin dark edge, not the heavy white ring Chess.com uses.
-BADGE_SIZE = 0.26
-BADGE_BORDER = (40, 40, 40)
+# Diameter as a share of a square.  Lichess's badges are large solid circles
+# with a white edge; at 0.26 they read as tiny dots on a phone.
+BADGE_SIZE = 0.40
+BADGE_BORDER = (255, 255, 255)
 # Punch-in bounds for the drama edit.  Past 1.12 the headline and the info band
 # lose too many pixels to stay legible on a phone, and below 1.0 there is no
 # punch at all.
@@ -987,6 +987,17 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
         fill=frame_colour,
     )
 
+    tinted = spec.accent in {
+        "blunder",
+        "mate",
+        "brilliant",
+        "good",
+        "mistake",
+        "dubious",
+        "interesting",
+        "only",
+        "zugzwang",
+    }
     for row in range(8):
         for col in range(8):
             file = chr(ord("a") + col)
@@ -996,9 +1007,19 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
             y0 = board_top + row * step
             light = (row + col) % 2 == 1
             fill = light_square if light else dark_square
-            if name in highlight:
-                fill = highlight_colour
             draw.rectangle([x0, y0, x0 + step, y0 + step], fill=fill)
+            if name in highlight:
+                if tinted:
+                    # A Lichess-style translucent tint keeps the square and the
+                    # piece readable; a solid fill reads as a warning card.
+                    tile = Image.new(
+                        "RGBA", (int(step), int(step)), (*highlight_colour, 150)
+                    )
+                    img.paste(tile, (int(round(x0)), int(round(y0))), tile)
+                else:
+                    draw.rectangle(
+                        [x0, y0, x0 + step, y0 + step], fill=highlight_colour
+                    )
 
     # Coordinates live in the square corner, in the opposite square colour, so
     # they stay readable without a separate gutter.

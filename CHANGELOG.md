@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Hook label follows the puzzle type (`НАЙДИ МАТ`, `ВЫИГРАЙ ЭНДШПИЛЬ`, `НАЙДИ ЛУЧШИЙ ХОД`).
   - Wrong moves are animated and annotated with Lichess analysis badges:
     `!`, `?`, `!!`, `??`, `!?`, `?!`, `#`, only-move and zugzwang marks.
+  - Badges are Lichess-sized (40% of a square) with a white edge and a
+    translucent square tint instead of a solid warning card.
   - Richer comment bank (`НЕ ТОТ ХОД`, `ДАЖЕ БЛИЗКО НЕ СТОЯЛ`, `МОЖЕТ, В КЛУБ? ;)`,
     `А ВОТ И ОН`, etc.) and type-aware hooks.
   - Music-driven, no voiceover; real phonk track is supplied via `--music` or `data/music/`.

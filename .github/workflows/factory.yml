@@ -18,6 +18,10 @@ jobs:
   factory:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      # Step-level `if` cannot read the secrets context directly; expose it as
+      # an env value and gate the steps on that instead.
+      FACTORY_ENV: ${{ secrets.FACTORY_ENV }}
 
     steps:
       - name: Checkout
@@ -45,14 +49,12 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Write .env from secret
-        if: ${{ secrets.FACTORY_ENV != '' }}
+        if: env.FACTORY_ENV != ''
         shell: bash
-        env:
-          FACTORY_ENV: ${{ secrets.FACTORY_ENV }}
         run: printf '%s\n' "$FACTORY_ENV" > .env
 
       - name: Skip if no secret
-        if: ${{ secrets.FACTORY_ENV == '' }}
+        if: env.FACTORY_ENV == ''
         run: |
           echo "::notice::FACTORY_ENV secret is not set — skipping factory run."
           exit 0
@@ -64,7 +66,7 @@ jobs:
         run: python -m pytest tests/ -x -q --tb=short || true
 
       - name: Run factory
-        if: ${{ secrets.FACTORY_ENV != '' }}
+        if: env.FACTORY_ENV != ''
         env:
           SHORTS_LOG_LEVEL: INFO
         run: >
@@ -73,11 +75,11 @@ jobs:
           --limit "${{ inputs.limit || '1' }}"
 
       - name: Collect metrics
-        if: always() && ${{ secrets.FACTORY_ENV != '' }}
+        if: ${{ always() && env.FACTORY_ENV != '' }}
         run: python scripts/collect_metrics.py --limit 50
 
       - name: Persist factory state
-        if: always() && ${{ secrets.FACTORY_ENV != '' }}
+        if: ${{ always() && env.FACTORY_ENV != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: factory-state

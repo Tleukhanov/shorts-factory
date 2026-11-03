@@ -206,9 +206,12 @@ class ShakeRenderTests(unittest.TestCase):
             # from run to run, so it is compared with slack.
             self.assertGreater(plain_frames, 0)
             self.assertEqual(plain_frames, shaken_frames, "the shake changed the clip length")
+            # The frame count above is the real length check.  The container
+            # duration also includes the AAC tail, whose padding varies with the
+            # ffmpeg build and x264 thread scheduling, so allow a full second.
             self.assertLessEqual(
                 abs(_seconds(plain_dur) - _seconds(shaken_dur)),
-                0.5,
+                1.0,
                 f"container duration moved: {plain_dur} -> {shaken_dur}",
             )
             for label, err in (("plain", plain_err), ("shaken", shaken_err)):

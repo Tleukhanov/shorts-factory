@@ -73,9 +73,7 @@ class DecorateAffiliateUrlTests(unittest.TestCase):
         )
 
     def test_build_affiliate_description_keeps_raw_link_without_clip_name(self):
-        partner = AffiliatePartner(
-            id="p", name="SkinHub", link_en="https://hub/en", tag="#ad"
-        )
+        partner = AffiliatePartner(id="p", name="SkinHub", link_en="https://hub/en", tag="#ad")
         description = build_affiliate_description({"description": "Nice clip"}, partner, "en")
         self.assertEqual(description, "Nice clip\n\nSkinHub\nhttps://hub/en\n#ad")
 
@@ -84,9 +82,7 @@ class MetricsAffiliateEventTests(unittest.TestCase):
     def test_record_affiliate_event_writes_row(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = MetricsStore(Path(tmp) / "metrics.sqlite")
-            store.record_affiliate_event(
-                "youtube", "tech", "skin_farm", "revenue", amount=12.5
-            )
+            store.record_affiliate_event("youtube", "tech", "skin_farm", "revenue", amount=12.5)
             row = store._conn.execute(
                 "SELECT * FROM affiliate_events WHERE partner_id=?", ("skin_farm",)
             ).fetchone()
@@ -260,12 +256,8 @@ class RevenueReportCliWiringTests(unittest.TestCase):
             db_path = Path(tmp) / "metrics.sqlite"
             out_path = Path(tmp) / "report.md"
             _seed_events(db_path)
-            with mock.patch.object(
-                cli.Settings, "from_env", return_value=_settings(db_path)
-            ):
-                code = cli.main(
-                    ["revenue-report", "--niche", "tech", "--out", str(out_path)]
-                )
+            with mock.patch.object(cli.Settings, "from_env", return_value=_settings(db_path)):
+                code = cli.main(["revenue-report", "--niche", "tech", "--out", str(out_path)])
                 self.assertEqual(code, 0)
                 self.assertTrue(out_path.exists())
                 md = out_path.read_text(encoding="utf-8")
@@ -276,9 +268,7 @@ class RevenueReportCliWiringTests(unittest.TestCase):
         import shorts_clipper.__main__ as cli
 
         parser = cli.build_parser()
-        parsed = parser.parse_args(
-            ["revenue-report", "--niche", "tech", "--partner", "nord"]
-        )
+        parsed = parser.parse_args(["revenue-report", "--niche", "tech", "--partner", "nord"])
         self.assertEqual(parsed.command, "revenue-report")
         self.assertEqual(parsed.niche, "tech")
         self.assertEqual(parsed.partner, "nord")

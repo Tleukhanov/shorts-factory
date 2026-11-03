@@ -342,9 +342,9 @@ def energy_envelope(
         if index + 1 >= count:
             break
         base = (index + 1) * hop
-        total += math.fsum(
-            v * v for v in samples[base - hop + window : base + window]
-        ) - math.fsum(v * v for v in samples[base - hop : base])
+        total += math.fsum(v * v for v in samples[base - hop + window : base + window]) - math.fsum(
+            v * v for v in samples[base - hop : base]
+        )
     return out
 
 
@@ -550,7 +550,7 @@ def estimate_period(odf: list[float], hop_seconds: float = ENVELOPE_HOP_SECONDS)
     # carry; see its docstring.
     peak = coarse
     if 0 < best < len(lags) - 1:
-        left, here, right = scores[best - 1: best + 2]
+        left, here, right = scores[best - 1 : best + 2]
         denominator = left - 2.0 * here + right
         if denominator != 0.0:
             shift = 0.5 * (left - right) / denominator
@@ -601,9 +601,7 @@ def _correlations(odf: list[float], lags: list[int]) -> list[float]:
                 out.append(0.0)
                 continue
             head, tail = x[:-lag], x[lag:]
-            energy = math.sqrt(
-                float(head @ head) * float(tail @ tail)
-            ) + 1e-12
+            energy = math.sqrt(float(head @ head) * float(tail @ tail)) + 1e-12
             out.append(float(head @ tail) / energy)
         return out
 
@@ -647,9 +645,7 @@ def _correlate(odf: list[float], lag: float) -> float:
         frac = index - floor
         head = x[:size]
         tail = x[floor] * (1.0 - frac) + x[floor + 1] * frac
-        energy = numpy.sqrt(
-            float(head @ head) * float(tail @ tail)
-        ) + 1e-12
+        energy = numpy.sqrt(float(head @ head) * float(tail @ tail)) + 1e-12
         return float(head @ tail) / energy
 
     mean = math.fsum(odf) / len(odf)
@@ -880,8 +876,12 @@ class BeatGrid:
         return self.phase - origin
 
 
-def beat_grid(path, *, hop_seconds: float = ENVELOPE_HOP_SECONDS,
-              window_seconds: float = ENVELOPE_WINDOW_SECONDS) -> BeatGrid | None:
+def beat_grid(
+    path,
+    *,
+    hop_seconds: float = ENVELOPE_HOP_SECONDS,
+    window_seconds: float = ENVELOPE_WINDOW_SECONDS,
+) -> BeatGrid | None:
     """Measure the beat grid of the WAV at *path*, or ``None``.
 
     ``None`` covers every way this can fail -- missing, not a PCM WAV this

@@ -389,6 +389,7 @@ def test_idempotent_retry_verifies_before_reupload(tmp_path):
 
 def test_budget_exhausted_with_unknown_id_no_reupload(tmp_path):
     """If a known id cannot be verified, stop (do not re-upload / duplicate)."""
+
     class UnverifiablePublisher(Publisher):
         def __init__(self):
             self.publish_count = 0
@@ -436,8 +437,7 @@ class FakeGoogleHttpError(Exception):
         self.status_code = status
         body_text = json.dumps(body) if not isinstance(body, str) else body
         super().__init__(
-            f'<HttpError {status} when requesting <url> returned "Error". '
-            f"Details: {body_text}"
+            f'<HttpError {status} when requesting <url> returned "Error". Details: {body_text}'
         )
 
         class _Resp:
@@ -483,9 +483,7 @@ def test_error_classification_quota_errors():
     )
     assert _is_retriable_error(daily) is True
 
-    user = FakeGoogleHttpError(
-        403, {"error": {"errors": [{"reason": "userRateLimitExceeded"}]}}
-    )
+    user = FakeGoogleHttpError(403, {"error": {"errors": [{"reason": "userRateLimitExceeded"}]}})
     assert _is_retriable_error(user) is True
 
     exhausted = FakeGoogleHttpError(429, {"error": {"message": "RESOURCE_EXHAUSTED"}})
@@ -508,17 +506,13 @@ def test_error_classification_resumable_and_network():
 def test_error_classification_structured_reasons():
     from shorts_clipper.publishers.manager import _is_retriable_error
 
-    backend = FakeGoogleHttpError(
-        403, {"error": {"errors": [{"reason": "backendError"}]}}
-    )
+    backend = FakeGoogleHttpError(403, {"error": {"errors": [{"reason": "backendError"}]}})
     assert _is_retriable_error(backend) is True
 
     unavailable = FakeGoogleHttpError(503, {"error": {"status": "UNAVAILABLE"}})
     assert _is_retriable_error(unavailable) is True
 
-    denied = FakeGoogleHttpError(
-        403, {"error": {"errors": [{"reason": "permissionDenied"}]}}
-    )
+    denied = FakeGoogleHttpError(403, {"error": {"errors": [{"reason": "permissionDenied"}]}})
     assert _is_retriable_error(denied) is False
 
 
@@ -603,8 +597,7 @@ def test_http_429_retried_then_success(tmp_path):
 def test_quota_403_retried_then_success(tmp_path):
     pub = FlakyHttpPublisher(
         [403],
-        fail_body={"error": {"errors": [{"reason": "quotaExceeded"}],
-                            "message": "quota exceeded"}},
+        fail_body={"error": {"errors": [{"reason": "quotaExceeded"}], "message": "quota exceeded"}},
     )
     PublisherRegistry._publishers["flaky"] = lambda: pub
 
@@ -677,9 +670,7 @@ class PermanentFailPublisher(Publisher):
 
     def publish(self, video_path, metadata, signed_url=None, progress_callback=None):
         self.calls += 1
-        return PublishResult(
-            self.platform_name, False, error_message="no platform id returned"
-        )
+        return PublishResult(self.platform_name, False, error_message="no platform id returned")
 
     def verify(self, platform_id: str) -> bool:
         return True
@@ -924,11 +915,7 @@ class W26TikTokVerifyIdTest(unittest.TestCase):
 
     def test_publish_returns_publish_id_as_platform_id(self):
         tiktok_mod = self._setup_publisher(
-            {
-                "pub_123": {
-                    "data": {"status": "PUBLISH_COMPLETE", "video_id": "vid_999"}
-                }
-            }
+            {"pub_123": {"data": {"status": "PUBLISH_COMPLETE", "video_id": "vid_999"}}}
         )
         video = Path(self._tmp.name) / "x.mp4"
         res = tiktok_mod.TikTokPublisher().publish(
@@ -941,21 +928,13 @@ class W26TikTokVerifyIdTest(unittest.TestCase):
 
     def test_verify_correct_publish_id_returns_true(self):
         tiktok_mod = self._setup_publisher(
-            {
-                "pub_123": {
-                    "data": {"status": "PUBLISH_COMPLETE", "video_id": "vid_999"}
-                }
-            }
+            {"pub_123": {"data": {"status": "PUBLISH_COMPLETE", "video_id": "vid_999"}}}
         )
         assert tiktok_mod.TikTokPublisher().verify("pub_123") is True
 
     def test_verify_unknown_id_returns_false(self):
         tiktok_mod = self._setup_publisher(
-            {
-                "pub_123": {
-                    "data": {"status": "PUBLISH_COMPLETE", "video_id": "vid_999"}
-                }
-            }
+            {"pub_123": {"data": {"status": "PUBLISH_COMPLETE", "video_id": "vid_999"}}}
         )
         assert tiktok_mod.TikTokPublisher().verify("vid_999") is False
         assert tiktok_mod.TikTokPublisher().verify("does_not_exist") is False

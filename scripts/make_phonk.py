@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import argparse
 import math
-import struct
 import sys
 import wave
 from pathlib import Path
@@ -29,7 +28,7 @@ import numpy as np
 SAMPLE_RATE = 44100
 BPM = 132.0
 BEAT = 60.0 / BPM  # seconds per beat
-BAR = 4 * BEAT     # seconds per bar (4 beats / bar)
+BAR = 4 * BEAT  # seconds per bar (4 beats / bar)
 
 
 def _adsr(n: int, a: float, d: float, s: float, r: float, sr: int) -> np.ndarray:

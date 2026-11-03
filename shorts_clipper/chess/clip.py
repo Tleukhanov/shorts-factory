@@ -91,9 +91,7 @@ def plan_for_decision(decision, captions: str | None = None) -> ChessClipPlan:
     src = chess.square_name(move.from_square)
     dst = chess.square_name(move.to_square)
     touched = tuple(
-        chess.square_name(sq)
-        for sq in chess.SQUARES
-        if before.piece_at(sq) != after.piece_at(sq)
+        chess.square_name(sq) for sq in chess.SQUARES if before.piece_at(sq) != after.piece_at(sq)
     )
     title = f"Ход {decision.move_number}… {decision.san}"
 
@@ -305,10 +303,7 @@ def _shake_filters(pad_colour: str) -> str:
     amp = SHAKE_PX
 
     def axis(trig: str, rate: float) -> str:
-        return (
-            f"{amp}+round({amp}*exp(-{SHAKE_DECAY}*t)"
-            f"*{trig}(2*PI*{SHAKE_HZ * rate}*t))"
-        )
+        return f"{amp}+round({amp}*exp(-{SHAKE_DECAY}*t)*{trig}(2*PI*{SHAKE_HZ * rate}*t))"
 
     return (
         f"pad=w={CLIP_WIDTH + 2 * amp}:h={CLIP_HEIGHT + 2 * amp}"
@@ -391,14 +386,39 @@ def render_clip(
             lines.append(f"file '{(work / f'frame_{len(plan.frames) - 1}.png').as_posix()}'")
             listing.write_text("\n".join(lines) + "\n", encoding="utf-8")
             cmd = [
-                ffmpeg, "-y", "-v", "error",
-                "-f", "concat", "-safe", "0", "-i", str(listing),
-                "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
-                "-vf", "format=yuv420p",
-                "-map", "0:v", "-map", "1:a",
-                "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-                "-c:a", "aac", "-b:a", "128k",
-                "-r", str(fps), "-shortest",
+                ffmpeg,
+                "-y",
+                "-v",
+                "error",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                str(listing),
+                "-f",
+                "lavfi",
+                "-i",
+                "anullsrc=channel_layout=stereo:sample_rate=48000",
+                "-vf",
+                "format=yuv420p",
+                "-map",
+                "0:v",
+                "-map",
+                "1:a",
+                "-c:v",
+                "libx264",
+                "-preset",
+                "veryfast",
+                "-crf",
+                "20",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "128k",
+                "-r",
+                str(fps),
+                "-shortest",
                 str(out),
             ]
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
@@ -419,18 +439,44 @@ def render_clip(
             if i in shaken:
                 filters = f"{zoom},{_shake_filters(_shake_pad_colour(png))}"
             cmd = [
-                ffmpeg, "-y", "-v", "error",
-                "-loop", "1", "-framerate", str(fps), "-t", f"{seconds:.3f}",
-                "-i", str(png),
+                ffmpeg,
+                "-y",
+                "-v",
+                "error",
+                "-loop",
+                "1",
+                "-framerate",
+                str(fps),
+                "-t",
+                f"{seconds:.3f}",
+                "-i",
+                str(png),
                 # A silent stereo track is always muxed in: chess clips are
                 # bed-driven in practice, and a video-only mp4 makes the later
                 # mix fail on "[0:a] matches no streams".
-                "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
-                "-vf", f"{filters},format=yuv420p",
-                "-map", "0:v", "-map", "1:a",
-                "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-                "-c:a", "aac", "-b:a", "128k", "-shortest",
-                "-r", str(fps),
+                "-f",
+                "lavfi",
+                "-i",
+                "anullsrc=channel_layout=stereo:sample_rate=48000",
+                "-vf",
+                f"{filters},format=yuv420p",
+                "-map",
+                "0:v",
+                "-map",
+                "1:a",
+                "-c:v",
+                "libx264",
+                "-preset",
+                "veryfast",
+                "-crf",
+                "20",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "128k",
+                "-shortest",
+                "-r",
+                str(fps),
                 str(seg),
             ]
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
@@ -443,13 +489,20 @@ def render_clip(
             return None
 
         listing = work / "segments.txt"
-        listing.write_text(
-            "".join(f"file '{s.as_posix()}'\n" for s in segments), encoding="utf-8"
-        )
+        listing.write_text("".join(f"file '{s.as_posix()}'\n" for s in segments), encoding="utf-8")
         cmd = [
-            ffmpeg, "-y", "-v", "error",
-            "-f", "concat", "-safe", "0", "-i", str(listing),
-            "-c", "copy",
+            ffmpeg,
+            "-y",
+            "-v",
+            "error",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(listing),
+            "-c",
+            "copy",
             str(out),
         ]
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
@@ -491,21 +544,38 @@ def add_bed(
             return out
         subprocess.run(
             [ffmpeg_path(), "-y", "-v", "error", "-i", str(clip_path), "-c", "copy", str(out)],
-            capture_output=True, timeout=120, check=False,
+            capture_output=True,
+            timeout=120,
+            check=False,
         )
         # Returning a path that does not exist would leave the caller unable to
         # tell success from failure, so hand back the input instead.
         return out if out.is_file() else clip_path
 
     cmd = [
-        ffmpeg_path(), "-y", "-v", "error",
-        "-i", str(clip_path),
-        "-ss", f"{float(start_seconds):.3f}", "-i", str(music_path),
+        ffmpeg_path(),
+        "-y",
+        "-v",
+        "error",
+        "-i",
+        str(clip_path),
+        "-ss",
+        f"{float(start_seconds):.3f}",
+        "-i",
+        str(music_path),
         "-filter_complex",
         f"[1:a]volume={volume}[bed];[0:a][bed]amix=inputs=2:duration=first:"
         "dropout_transition=0:normalize=0,alimiter=limit=0.97[aout]",
-        "-map", "0:v", "-map", "[aout]",
-        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+        "-map",
+        "0:v",
+        "-map",
+        "[aout]",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
         str(out),
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)

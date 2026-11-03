@@ -183,9 +183,7 @@ class StockBgmMixTests(unittest.TestCase):
         patcher = _clean()
         try:
             os.environ["SHORTS_STOCK_BGM_VOLUME"] = "0.25"
-            settings = _load(
-                "SHORTS_VISUAL_MODE=stock\nSHORTS_STOCK_BGM_VOLUME=0.22\n"
-            )
+            settings = _load("SHORTS_VISUAL_MODE=stock\nSHORTS_STOCK_BGM_VOLUME=0.22\n")
             self.assertAlmostEqual(settings.stock_bgm_volume, 0.25)
         finally:
             patcher.stop()

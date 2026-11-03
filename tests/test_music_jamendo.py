@@ -47,7 +47,7 @@ def _item(name, artist, audio_url, duration, license_id):
         "id": "track0",
         "name": name,
         "artist_name": artist,
-        "audio": [{"audio": audio_url, "audioformat": "mp32", "size": 2 ** 20}],
+        "audio": [{"audio": audio_url, "audioformat": "mp32", "size": 2**20}],
         "trackduration": duration,
         "licenses": [{"id": license_id}],
     }
@@ -120,8 +120,14 @@ class JamendoParseTests(unittest.TestCase):
         payload = {
             "results": [
                 _item("Has Audio", "A", "https://x/a.mp3", 30.0, "ccby"),
-                {"id": "noaudio", "name": "No Audio", "artist_name": "Z",
-                 "licenses": [{"id": "ccby"}], "trackduration": 30.0, "audio": []},
+                {
+                    "id": "noaudio",
+                    "name": "No Audio",
+                    "artist_name": "Z",
+                    "licenses": [{"id": "ccby"}],
+                    "trackduration": 30.0,
+                    "audio": [],
+                },
             ]
         }
         with _fake_urlopen(payload):
@@ -185,25 +191,27 @@ class FetchPhonkSourceOrderTests(unittest.TestCase):
             license="CC BY",
             duration=25.0,
         )
-        with mock.patch(
-            "shorts_clipper.downloader.music_scraper.search_jamendo_tracks",
-            return_value=[jamendo_track],
-        ) as fake_jamendo, mock.patch(
-            "shorts_clipper.downloader.music_scraper.search_pixabay_api",
-            side_effect=AssertionError("pixabay api must not be contacted"),
-        ) as fake_pix_api, mock.patch(
-            "shorts_clipper.downloader.music_scraper.scrape_pixabay_urls",
-            side_effect=AssertionError("pixabay scrape must not be contacted"),
-        ) as fake_pix_scrape, mock.patch(
-            "shorts_clipper.downloader.music_scraper.scrape_freestock_tracks",
-            side_effect=AssertionError("freestock must not be contacted"),
-        ) as fake_fs, mock.patch(
-            "shorts_clipper.downloader.music_scraper._download", return_value=True
+        with (
+            mock.patch(
+                "shorts_clipper.downloader.music_scraper.search_jamendo_tracks",
+                return_value=[jamendo_track],
+            ) as fake_jamendo,
+            mock.patch(
+                "shorts_clipper.downloader.music_scraper.search_pixabay_api",
+                side_effect=AssertionError("pixabay api must not be contacted"),
+            ) as fake_pix_api,
+            mock.patch(
+                "shorts_clipper.downloader.music_scraper.scrape_pixabay_urls",
+                side_effect=AssertionError("pixabay scrape must not be contacted"),
+            ) as fake_pix_scrape,
+            mock.patch(
+                "shorts_clipper.downloader.music_scraper.scrape_freestock_tracks",
+                side_effect=AssertionError("freestock must not be contacted"),
+            ) as fake_fs,
+            mock.patch("shorts_clipper.downloader.music_scraper._download", return_value=True),
         ):
             with tempfile.TemporaryDirectory() as tmp:
-                out = fetch_phonk_tracks(
-                    Path(tmp), max_tracks=5, jamendo_api_key="JKEY"
-                )
+                out = fetch_phonk_tracks(Path(tmp), max_tracks=5, jamendo_api_key="JKEY")
 
         fake_jamendo.assert_called_once_with(api_key="JKEY", max_tracks=5)
         fake_pix_api.assert_not_called()
@@ -218,20 +226,24 @@ class FetchPhonkSourceOrderTests(unittest.TestCase):
             artist="Artist",
             license="Pixabay Content License (free commercial use)",
         )
-        with mock.patch(
-            "shorts_clipper.downloader.music_scraper.search_jamendo_tracks",
-            return_value=[],
-        ) as fake_jamendo, mock.patch(
-            "shorts_clipper.downloader.music_scraper.search_pixabay_api",
-            return_value=[pix_track],
-        ) as fake_pix_api, mock.patch(
-            "shorts_clipper.downloader.music_scraper.scrape_pixabay_urls",
-            side_effect=AssertionError("pixabay scrape must not be contacted"),
-        ), mock.patch(
-            "shorts_clipper.downloader.music_scraper.scrape_freestock_tracks",
-            side_effect=AssertionError("freestock must not be contacted"),
-        ), mock.patch(
-            "shorts_clipper.downloader.music_scraper._download", return_value=True
+        with (
+            mock.patch(
+                "shorts_clipper.downloader.music_scraper.search_jamendo_tracks",
+                return_value=[],
+            ) as fake_jamendo,
+            mock.patch(
+                "shorts_clipper.downloader.music_scraper.search_pixabay_api",
+                return_value=[pix_track],
+            ) as fake_pix_api,
+            mock.patch(
+                "shorts_clipper.downloader.music_scraper.scrape_pixabay_urls",
+                side_effect=AssertionError("pixabay scrape must not be contacted"),
+            ),
+            mock.patch(
+                "shorts_clipper.downloader.music_scraper.scrape_freestock_tracks",
+                side_effect=AssertionError("freestock must not be contacted"),
+            ),
+            mock.patch("shorts_clipper.downloader.music_scraper._download", return_value=True),
         ):
             with tempfile.TemporaryDirectory() as tmp:
                 out = fetch_phonk_tracks(
@@ -254,11 +266,12 @@ class FetchPhonkSourceOrderTests(unittest.TestCase):
             license="CC BY-SA",
             duration=25.0,
         )
-        with mock.patch(
-            "shorts_clipper.downloader.music_scraper.search_jamendo_tracks",
-            return_value=[jamendo_track],
-        ), mock.patch(
-            "shorts_clipper.downloader.music_scraper._download", return_value=True
+        with (
+            mock.patch(
+                "shorts_clipper.downloader.music_scraper.search_jamendo_tracks",
+                return_value=[jamendo_track],
+            ),
+            mock.patch("shorts_clipper.downloader.music_scraper._download", return_value=True),
         ):
             with tempfile.TemporaryDirectory() as tmp:
                 tmp_path = Path(tmp)

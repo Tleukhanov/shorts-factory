@@ -90,6 +90,7 @@ class RunBatchTests(unittest.TestCase):
 
     def test_fail_fast_stops_at_first_failure(self):
         with tempfile.TemporaryDirectory() as tmp:
+
             def fake_run(url, **kwargs):
                 if url == "https://www.youtube.com/watch?v=bad":
                     raise RuntimeError("boom")
@@ -108,6 +109,7 @@ class RunBatchTests(unittest.TestCase):
 
     def test_continue_on_error_keeps_going_and_reports_failures(self):
         with tempfile.TemporaryDirectory() as tmp:
+
             def fake_run(url, **kwargs):
                 if url != "https://www.youtube.com/watch?v=good":
                     raise RuntimeError("nope")
@@ -168,9 +170,7 @@ class RunBatchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             settings = self._settings(tmp)
             fake_out = Path(tmp) / "rendered_clip_1.mp4"
-            with mock.patch(
-                "shorts_clipper.pipeline.runner.run", return_value=fake_out
-            ):
+            with mock.patch("shorts_clipper.pipeline.runner.run", return_value=fake_out):
                 result = run_batch(["abc123def45"], settings=settings)
 
             self.assertTrue(result.ok)
@@ -190,9 +190,7 @@ class RunBatchTests(unittest.TestCase):
             bad_path = Path(tmp) / "blocked" / "sub" / "metrics.sqlite"
             Path(tmp, "blocked").write_text("i am a file, not a dir", encoding="utf-8")
             settings = SimpleNamespace(metrics_path=bad_path, channel_name="batch-test")
-            with mock.patch(
-                "shorts_clipper.pipeline.runner.run", return_value=Path("out.mp4")
-            ):
+            with mock.patch("shorts_clipper.pipeline.runner.run", return_value=Path("out.mp4")):
                 result = run_batch(["abc123def45"], settings=settings)
 
         self.assertTrue(result.ok)
@@ -265,9 +263,7 @@ class CliBatchWiringTests(unittest.TestCase):
             succeeded=1,
             failed=0,
         )
-        with mock.patch(
-            "shorts_clipper.pipeline.runner.run_batch", return_value=ok_result
-        ):
+        with mock.patch("shorts_clipper.pipeline.runner.run_batch", return_value=ok_result):
             code = cli.main(["clip", "--source", "https://youtu.be/aaa"])
         self.assertEqual(code, 0)
 
@@ -287,9 +283,7 @@ class CliBatchWiringTests(unittest.TestCase):
         failed_result = BatchResult(
             ok=False,
             results=[
-                BatchSourceResult(
-                    index=1, source="https://youtu.be/aaa", ok=False, error="boom"
-                ),
+                BatchSourceResult(index=1, source="https://youtu.be/aaa", ok=False, error="boom"),
                 BatchSourceResult(
                     index=2, source="https://youtu.be/bbb", ok=True, outputs=Path("b.mp4")
                 ),
@@ -298,9 +292,7 @@ class CliBatchWiringTests(unittest.TestCase):
             succeeded=1,
             failed=1,
         )
-        with mock.patch(
-            "shorts_clipper.pipeline.runner.run_batch", return_value=failed_result
-        ):
+        with mock.patch("shorts_clipper.pipeline.runner.run_batch", return_value=failed_result):
             code = cli.main(
                 [
                     "clip",
@@ -332,9 +324,7 @@ class CliBatchWiringTests(unittest.TestCase):
                 succeeded=1,
                 failed=0,
             )
-            with mock.patch(
-                "shorts_clipper.pipeline.runner.run_batch", return_value=ok_result
-            ):
+            with mock.patch("shorts_clipper.pipeline.runner.run_batch", return_value=ok_result):
                 code = cli.main(["autopilot", "--batch-file", str(batch)])
         self.assertEqual(code, 0)
 

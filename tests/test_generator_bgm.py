@@ -18,10 +18,7 @@ def _make_sample(segments):
             start=seg["start"],
             end=seg["end"],
             text=seg["text"],
-            words=[
-                TranscriptWord(start=w[0], end=w[1], word=w[2])
-                for w in seg.get("words", [])
-            ],
+            words=[TranscriptWord(start=w[0], end=w[1], word=w[2]) for w in seg.get("words", [])],
         )
         for seg in segments
     ]
@@ -91,15 +88,20 @@ class BurnSubtitleBgmTests(unittest.TestCase):
 
         def fake_run(cmd, **kwargs):
             captured["cmd"] = cmd
+
             class R:
                 returncode = 0
                 stderr = ""
                 stdout = ""
+
             return R()
 
         with mock.patch("shorts_clipper.captions.generator.subprocess.run", fake_run):
             burn_subtitles(
-                self.video, self.segments, start_offset=0.0, output_path=out,
+                self.video,
+                self.segments,
+                start_offset=0.0,
+                output_path=out,
             )
         cmd = captured["cmd"]
         self.assertEqual(cmd[0], ffmpeg_path())
@@ -116,10 +118,12 @@ class BurnSubtitleBgmTests(unittest.TestCase):
 
         def fake_run(cmd, **kwargs):
             captured["cmd"] = cmd
+
             class R:
                 returncode = 0
                 stderr = ""
                 stdout = ""
+
             return R()
 
         with mock.patch("shorts_clipper.captions.generator.subprocess.run", fake_run):

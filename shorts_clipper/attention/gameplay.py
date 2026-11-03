@@ -167,12 +167,8 @@ def windows_and_peaks_from_audio(
         top_n=settings.gameplay_top_windows,
     )
     if total_seconds and total_seconds > 0:
-        windows = [
-            w for w in windows if w.start < total_seconds
-        ]
-        windows = [
-            ClipWindow(start=w.start, end=min(w.end, total_seconds)) for w in windows
-        ]
+        windows = [w for w in windows if w.start < total_seconds]
+        windows = [ClipWindow(start=w.start, end=min(w.end, total_seconds)) for w in windows]
     peak_data = _cluster_peaks_with_magnitudes(energy, windows)
     return [(w, pd[0], pd[1]) for w, pd in zip(windows, peak_data, strict=True)]
 

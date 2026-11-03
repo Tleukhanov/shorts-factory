@@ -38,9 +38,7 @@ def test_adds_finance_disclaimer():
 
 def test_adds_both_when_both_needed():
     gate = ComplianceGate(make_settings())
-    safe, note = gate.suggest_description(
-        "Курс по форекс", is_finance=True, affiliate_enabled=True
-    )
+    safe, note = gate.suggest_description("Курс по форекс", is_finance=True, affiliate_enabled=True)
     assert "#реклама" in safe
     assert "инвестиционной рекомендацией" in safe
     assert note

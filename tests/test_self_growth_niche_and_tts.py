@@ -34,16 +34,24 @@ class SelfGrowthKeywordsTests(unittest.TestCase):
 
 class VoiceLanguageTests(unittest.TestCase):
     def test_detect_russian_text(self):
-        self.assertEqual(_detect_language("Стоицизм учит принимать то, что не зависит от нас"), "ru")
+        self.assertEqual(
+            _detect_language("Стоицизм учит принимать то, что не зависит от нас"), "ru"
+        )
 
     def test_detect_english_text(self):
-        self.assertEqual(_detect_language("Wisdom teaches us to accept what we cannot change"), "en")
+        self.assertEqual(
+            _detect_language("Wisdom teaches us to accept what we cannot change"), "en"
+        )
 
     def test_pick_voice_auto_ru(self):
-        self.assertEqual(pick_voice("Дисциплина освобождает разум", configured=None), "ru-RU-DmitryNeural")
+        self.assertEqual(
+            pick_voice("Дисциплина освобождает разум", configured=None), "ru-RU-DmitryNeural"
+        )
 
     def test_pick_voice_auto_en(self):
-        self.assertEqual(pick_voice("Discipline frees the mind", configured=None), "en-US-GuyNeural")
+        self.assertEqual(
+            pick_voice("Discipline frees the mind", configured=None), "en-US-GuyNeural"
+        )
 
     def test_explicit_voice_wins(self):
         self.assertEqual(

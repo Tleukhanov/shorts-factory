@@ -18,8 +18,9 @@ import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import av
 
@@ -71,24 +72,17 @@ def scan_outputs(output_dir: Path, log: Callable[[str], None] | Any) -> dict[str
         try:
             container = av.open(str(clip))
             try:
-                video_stream = next(
-                    (s for s in container.streams if s.type == "video"), None
-                )
+                video_stream = next((s for s in container.streams if s.type == "video"), None)
                 if video_stream is not None:
                     width = video_stream.width
                     height = video_stream.height
                     if container.duration:
                         duration = float(container.duration) / av.time_base
                     else:
-                        duration = float(
-                            video_stream.duration * video_stream.time_base
-                        )
+                        duration = float(video_stream.duration * video_stream.time_base)
                     result["vertical"] = height > width
                     result["duration_sec"] = round(duration, 3)
-                    emit(
-                        f"Verified clip {clip.name}: {width}x{height}, "
-                        f"duration={duration:.3f}s"
-                    )
+                    emit(f"Verified clip {clip.name}: {width}x{height}, duration={duration:.3f}s")
                 else:
                     emit(f"No video stream found in {clip}")
             finally:
@@ -150,6 +144,7 @@ def main(argv: list[str] | None = None) -> int:
     hf_home.mkdir(parents=True, exist_ok=True)
 
     with log_path.open("w", encoding="utf-8") as log:
+
         def log_write(msg: str) -> None:
             log.write(msg + "\n")
             log.flush()
@@ -229,11 +224,27 @@ def main(argv: list[str] | None = None) -> int:
             aprint("-" * 60)
             _runs = sorted({p.parent for p in out_dir.rglob("rendered_clip_*.mp4")})
             latest_run = _runs[-1] if _runs else None
-            mp4s = sorted(latest_run.glob("rendered_clip_*.mp4")) if latest_run else sorted(out_dir.rglob("rendered_clip_*.mp4"))
-            jpgs = sorted(latest_run.glob("thumbnail_*.jpg")) if latest_run else sorted(out_dir.rglob("thumbnail_*.jpg"))
-            metas = sorted(latest_run.glob("final_metadata_*.json")) if latest_run else sorted(out_dir.rglob("final_metadata_*.json"))
+            mp4s = (
+                sorted(latest_run.glob("rendered_clip_*.mp4"))
+                if latest_run
+                else sorted(out_dir.rglob("rendered_clip_*.mp4"))
+            )
+            jpgs = (
+                sorted(latest_run.glob("thumbnail_*.jpg"))
+                if latest_run
+                else sorted(out_dir.rglob("thumbnail_*.jpg"))
+            )
+            metas = (
+                sorted(latest_run.glob("final_metadata_*.json"))
+                if latest_run
+                else sorted(out_dir.rglob("final_metadata_*.json"))
+            )
             rows = [
-                ("rendered_clip_*.mp4", res["found_mp4"], "found" if res["found_mp4"] else "missing"),
+                (
+                    "rendered_clip_*.mp4",
+                    res["found_mp4"],
+                    "found" if res["found_mp4"] else "missing",
+                ),
                 ("thumbnail_*.jpg", res["found_jpg"], "found" if res["found_jpg"] else "missing"),
                 (
                     "final_metadata_*.json",
@@ -267,7 +278,9 @@ def main(argv: list[str] | None = None) -> int:
             aprint(f"mp4 files         : {[p.name for p in mp4s]}")
             aprint(f"jpg files         : {[p.name for p in jpgs]}")
             aprint(f"metadata files    : {[p.name for p in metas]}")
-            aprint(f"Verified          : vertical={res['vertical']} duration={res['duration_sec']}s")
+            aprint(
+                f"Verified          : vertical={res['vertical']} duration={res['duration_sec']}s"
+            )
             aprint("Log               : {log_path}".replace("{log_path}", str(log_path)))
 
             if not all_ok:

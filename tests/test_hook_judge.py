@@ -63,7 +63,7 @@ class TestParseVerdict(unittest.TestCase):
         self.assertIn("no reason", result["reason"])
 
     def test_non_dict_returns_neutral(self):
-        result = _parse_verdict('[1, 2, 3]')
+        result = _parse_verdict("[1, 2, 3]")
         self.assertAlmostEqual(result["score"], 0.5)
 
     def test_score_clamped_above_one(self):
@@ -150,9 +150,7 @@ class TestHookJudgeScore(unittest.TestCase):
         with mock.patch.dict(
             "sys.modules",
             {
-                "shorts_clipper.providers.gemini": mock.MagicMock(
-                    GeminiProvider=raising_cls
-                ),
+                "shorts_clipper.providers.gemini": mock.MagicMock(GeminiProvider=raising_cls),
                 "shorts_clipper.providers": mock.MagicMock(),
             },
         ):
@@ -250,9 +248,7 @@ class TestHookJudgeScore(unittest.TestCase):
         with mock.patch.dict(
             "sys.modules",
             {
-                "shorts_clipper.providers.gemini": mock.MagicMock(
-                    GeminiProvider=mock_prov_cls
-                ),
+                "shorts_clipper.providers.gemini": mock.MagicMock(GeminiProvider=mock_prov_cls),
                 "shorts_clipper.providers": mock.MagicMock(),
             },
         ):

@@ -33,9 +33,7 @@ def _settings(**overrides) -> Settings:
 
 def test_returns_zero_with_valid_ffmpeg_and_no_tokens(tmp_path, capsys):
     env_file = tmp_path / ".env"
-    env_file.write_text(
-        "SHORTS_OUTPUT_DIR=outputs\nSHORTS_MODELS_DIR=models\n", encoding="utf-8"
-    )
+    env_file.write_text("SHORTS_OUTPUT_DIR=outputs\nSHORTS_MODELS_DIR=models\n", encoding="utf-8")
     settings = Settings.from_env(env_path=env_file)
 
     code = run_doctor(settings)

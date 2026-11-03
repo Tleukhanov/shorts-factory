@@ -55,9 +55,14 @@ def _blunder_pgn(seed: int = 20261005, want_cp: int = 400, white: str = "A") -> 
             if worst is None or delta < worst[0]:
                 worst = (delta, san)
         if worst[0] <= -want_cp:
-            game = chess.pgn.Game(headers={
-                "White": white, "Black": f"{white}ko", "Result": "*", "Event": "Unit Test",
-            })
+            game = chess.pgn.Game(
+                headers={
+                    "White": white,
+                    "Black": f"{white}ko",
+                    "Result": "*",
+                    "Event": "Unit Test",
+                }
+            )
             node = game
             for s in [*history, worst[1]]:
                 node = node.add_variation(node.board().parse_san(s))
@@ -73,9 +78,19 @@ class _Args(argparse.Namespace):
 
     def __init__(self, **kw):
         super().__init__(
-            path=[], output=None, count=1, critical_cp=None, min_ply=None,
-            music=None, no_music=False, seed=7, used_path=None, clear_used=False,
-            continue_on_error=False, tactics_config=None, analysis_config=None,
+            path=[],
+            output=None,
+            count=1,
+            critical_cp=None,
+            min_ply=None,
+            music=None,
+            no_music=False,
+            seed=7,
+            used_path=None,
+            clear_used=False,
+            continue_on_error=False,
+            tactics_config=None,
+            analysis_config=None,
         )
         for k, v in kw.items():
             setattr(self, k, v)
@@ -110,8 +125,13 @@ class ParserTests(unittest.TestCase):
         """A format the parser does not accept is a format the factory cannot run."""
         parser = cli.build_parser()
         for fmt in (
-            "deciding", "challenge", "opening", "endgame", "highlight",
-            "tournament", "analysis",
+            "deciding",
+            "challenge",
+            "opening",
+            "endgame",
+            "highlight",
+            "tournament",
+            "analysis",
         ):
             with self.subTest(fmt=fmt):
                 args = parser.parse_args(["chess", "g.pgn", "--format", fmt])
@@ -314,7 +334,10 @@ class DedupTests(unittest.TestCase):
 
             first, _, skipped = batch.plan_batch(
                 batch.collect_sources([str(root)]),
-                count=1, critical_cp=200, min_ply=0, used=set(),
+                count=1,
+                critical_cp=200,
+                min_ply=0,
+                used=set(),
             )
             self.assertEqual(len(first), 1)
             self.assertEqual(skipped, 0)
@@ -322,7 +345,9 @@ class DedupTests(unittest.TestCase):
 
             again, results2, skipped2 = batch.plan_batch(
                 batch.collect_sources([str(root)]),
-                count=1, critical_cp=200, min_ply=0,
+                count=1,
+                critical_cp=200,
+                min_ply=0,
                 used=batch.load_used_moments(history),
             )
             self.assertEqual(again, [], "the same moment was offered a second time")
@@ -378,10 +403,18 @@ class DedupTests(unittest.TestCase):
 
     def test_slug_is_filesystem_safe(self):
         decision = analysis.Decision(
-            ply=11, move_number=6, color="white", san="Nf6", uci="g1f6",
-            fen_before=analysis._START_FEN, fen_after=analysis._START_FEN,
-            eval_before_cp=0, eval_after_cp=-300, mover_loss_cp=300,
-            material=True, header={"White": "Иванов П.", "Black": "O'Brien, J."},
+            ply=11,
+            move_number=6,
+            color="white",
+            san="Nf6",
+            uci="g1f6",
+            fen_before=analysis._START_FEN,
+            fen_after=analysis._START_FEN,
+            eval_before_cp=0,
+            eval_after_cp=-300,
+            mover_loss_cp=300,
+            material=True,
+            header={"White": "Иванов П.", "Black": "O'Brien, J."},
         )
         moment = batch.Moment(decision=decision, source=Path("x.pgn"))
         self.assertNotIn("/", moment.slug)

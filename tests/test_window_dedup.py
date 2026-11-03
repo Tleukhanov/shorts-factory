@@ -45,8 +45,8 @@ class SelectNonOverlappingTests(unittest.TestCase):
 
     def test_three_windows_chain(self):
         w1 = ClipWindow(start=0.0, end=30.0)
-        w2 = ClipWindow(start=25.0, end=55.0)   # overlaps w1
-        w3 = ClipWindow(start=90.0, end=120.0)   # far from w1
+        w2 = ClipWindow(start=25.0, end=55.0)  # overlaps w1
+        w3 = ClipWindow(start=90.0, end=120.0)  # far from w1
         result = select_non_overlapping([w1, w2, w3], min_gap=15.0)
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0], w1)
@@ -67,7 +67,8 @@ class SelectNonOverlappingTests(unittest.TestCase):
         # w2 (score=2) is considered first, then w3 (score=1), then w1 (score=0)
         # w2 kept; w3 far from w2 → kept; w1 overlaps w2 → dropped
         result = select_non_overlapping(
-            [w1, w2, w3], min_gap=15.0,
+            [w1, w2, w3],
+            min_gap=15.0,
             score=lambda w: {id(w1): 0, id(w2): 2, id(w3): 1}[id(w)],
         )
         self.assertEqual(len(result), 2)
@@ -106,9 +107,7 @@ class SelectNonOverlappingTests(unittest.TestCase):
     def test_tie_breaking_keeps_earlier_in_original_order(self):
         w1 = ClipWindow(start=0.0, end=30.0)
         w2 = ClipWindow(start=5.0, end=35.0)  # same score as w1
-        result = select_non_overlapping(
-            [w1, w2], min_gap=15.0, score=lambda w: 1.0
-        )
+        result = select_non_overlapping([w1, w2], min_gap=15.0, score=lambda w: 1.0)
         # Both score 1.0 → sorted by list order (w1 before w2), w1 kept, w2 too close
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], w1)
@@ -117,6 +116,7 @@ class SelectNonOverlappingTests(unittest.TestCase):
 class GamePlaySettingsClipMinSeparationTests(unittest.TestCase):
     def test_default_value(self):
         from shorts_clipper.core.settings import Settings
+
         s = Settings()
         self.assertEqual(s.clip_min_separation, 15.0)
 
@@ -124,6 +124,7 @@ class GamePlaySettingsClipMinSeparationTests(unittest.TestCase):
         import os
 
         from shorts_clipper.core.settings import Settings
+
         os.environ["SHORTS_CLIP_MIN_SEPARATION"] = "25.0"
         try:
             s = Settings.from_env("_nonexistent.env")

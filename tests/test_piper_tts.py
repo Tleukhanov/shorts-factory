@@ -129,9 +129,7 @@ def _piper_stub(voice=None, align=None, span=None, seconds: float = 3.2):
 def _no_edge():
     """Force the edge-tts side to be deterministic and offline."""
     with (
-        mock.patch(
-            "shorts_clipper.audio.tts._edge_tts_library_available", return_value=False
-        ),
+        mock.patch("shorts_clipper.audio.tts._edge_tts_library_available", return_value=False),
         mock.patch("shorts_clipper.audio.tts._synthesize_edge", return_value=None) as edge,
     ):
         yield edge
@@ -181,12 +179,8 @@ def test_piper_used_when_engine_is_piper(monkeypatch, tmp_path):
 
 def test_edge_used_when_engine_forced(monkeypatch, tmp_path):
     monkeypatch.setenv("SHORTS_VO_ENGINE", "edge")
-    with mock.patch.object(
-        piper_tts, "synthesize", side_effect=AssertionError("piper used")
-    ):
-        with mock.patch(
-            "shorts_clipper.audio.tts._synthesize_edge", return_value=None
-        ) as edge:
+    with mock.patch.object(piper_tts, "synthesize", side_effect=AssertionError("piper used")):
+        with mock.patch("shorts_clipper.audio.tts._synthesize_edge", return_value=None) as edge:
             path = synthesize_voiceover(LINE, tmp_path / "vo.wav")
     assert path is None
     edge.assert_called_once()
@@ -197,8 +191,7 @@ def test_voice_selection_is_unchanged():
     assert pick_voice("Дисциплина освобождает разум", configured=None) == "ru-RU-DmitryNeural"
     assert pick_voice("Discipline frees the mind", configured=None) == DEFAULT_VOICE
     assert (
-        pick_voice("Любой текст", configured="en-US-ChristopherNeural")
-        == "en-US-ChristopherNeural"
+        pick_voice("Любой текст", configured="en-US-ChristopherNeural") == "en-US-ChristopherNeural"
     )
     assert Settings.from_env().vo_voice == DEFAULT_VOICE
 
@@ -220,16 +213,12 @@ def test_configured_edge_voice_maps_to_same_language_piper_model():
     )
     # DEFAULT_VOICE means "auto", exactly as pick_voice treats it, so the
     # detected text language still wins.
-    assert (
-        piper_tts.resolve_model_name(LINE, configured=DEFAULT_VOICE)
-        == "ru_RU-denis-medium"
-    )
+    assert piper_tts.resolve_model_name(LINE, configured=DEFAULT_VOICE) == "ru_RU-denis-medium"
 
 
 def test_configured_piper_model_id_wins():
     assert (
-        piper_tts.resolve_model_name(LINE, configured="ru_RU-irina-medium")
-        == "ru_RU-irina-medium"
+        piper_tts.resolve_model_name(LINE, configured="ru_RU-irina-medium") == "ru_RU-irina-medium"
     )
 
 
@@ -290,9 +279,7 @@ def test_fallback_when_model_load_fails(tmp_path, caplog):
             with mock.patch.object(piper_tts, "_load_voice", return_value=None):
                 with _no_edge() as edge:
                     with caplog.at_level(logging.WARNING):
-                        path, bounds = synthesize_voiceover_boundaries(
-                            LINE, tmp_path / "vo.wav"
-                        )
+                        path, bounds = synthesize_voiceover_boundaries(LINE, tmp_path / "vo.wav")
     assert (path, bounds) == (None, [])
     edge.assert_called_once()
     assert any("could not be loaded" in r.message for r in caplog.records)
@@ -300,9 +287,7 @@ def test_fallback_when_model_load_fails(tmp_path, caplog):
 
 def test_fallback_when_piper_synthesis_raises(tmp_path, caplog):
     with _piper_stub():
-        with mock.patch(
-            "shorts_clipper.audio.tts.transcode_to_wav", side_effect=OSError("boom")
-        ):
+        with mock.patch("shorts_clipper.audio.tts.transcode_to_wav", side_effect=OSError("boom")):
             with _no_edge() as edge:
                 with caplog.at_level(logging.WARNING):
                     path, bounds = synthesize_voiceover_boundaries(LINE, tmp_path / "vo.wav")
@@ -313,9 +298,7 @@ def test_fallback_when_piper_synthesis_raises(tmp_path, caplog):
 
 def test_fallback_when_transcode_fails(tmp_path, caplog):
     with _piper_stub():
-        with mock.patch(
-            "shorts_clipper.audio.tts.transcode_to_wav", return_value=False
-        ):
+        with mock.patch("shorts_clipper.audio.tts.transcode_to_wav", return_value=False):
             with _no_edge() as edge:
                 with caplog.at_level(logging.WARNING):
                     path, bounds = synthesize_voiceover_boundaries(LINE, tmp_path / "vo.wav")
@@ -338,12 +321,8 @@ def test_fallback_when_piper_module_raises(tmp_path):
 def test_no_piper_no_model_no_edge_returns_none_without_raising(tmp_path):
     """The worst case: nothing installed at all."""
     with mock.patch.object(piper_tts, "piper_installed", return_value=False):
-        with mock.patch(
-            "shorts_clipper.audio.tts._edge_tts_library_available", return_value=False
-        ):
-            with mock.patch(
-                "shorts_clipper.audio.tts._edge_tts_available", return_value=False
-            ):
+        with mock.patch("shorts_clipper.audio.tts._edge_tts_library_available", return_value=False):
+            with mock.patch("shorts_clipper.audio.tts._edge_tts_available", return_value=False):
                 path, bounds = synthesize_voiceover_boundaries(LINE, tmp_path / "vo.wav")
     assert (path, bounds) == (None, [])
 
@@ -393,19 +372,14 @@ def test_boundaries_from_proportional_fallback_are_sane(tmp_path):
 
 def test_boundaries_sane_when_edge_library_missing(tmp_path):
     """edge-tts CLI fallback with no boundary events still yields timings."""
+
     def _fake_edge(text, out_path, voice=None, rate="+8%", pitch=None):
         _write_wav(Path(out_path), seconds=2.0)
         return Path(out_path)
 
-    with mock.patch(
-        "shorts_clipper.audio.tts._edge_tts_library_available", return_value=False
-    ):
-        with mock.patch(
-            "shorts_clipper.audio.tts._synthesize_edge", side_effect=_fake_edge
-        ):
-            with mock.patch(
-                "shorts_clipper.audio.tts.speech_window", return_value=(0.0, 2.0)
-            ):
+    with mock.patch("shorts_clipper.audio.tts._edge_tts_library_available", return_value=False):
+        with mock.patch("shorts_clipper.audio.tts._synthesize_edge", side_effect=_fake_edge):
+            with mock.patch("shorts_clipper.audio.tts.speech_window", return_value=(0.0, 2.0)):
                 path, got = synthesize_voiceover_boundaries(LINE, tmp_path / "vo.wav")
     assert path is not None
     _assert_sane(got)
@@ -416,19 +390,13 @@ def test_edge_word_events_are_normalised(tmp_path, monkeypatch):
     """Real edge-tts ticks come through untouched when they are already sane."""
     monkeypatch.setenv("SHORTS_VO_ENGINE", "edge")
     raw = [("Пятнадцать", 0.05, 0.51), ("тысяч", 0.51, 0.88), ("в", 0.9, 0.97)]
-    with mock.patch(
-        "shorts_clipper.audio.tts._edge_tts_library_available", return_value=True
-    ):
+    with mock.patch("shorts_clipper.audio.tts._edge_tts_library_available", return_value=True):
         with mock.patch(
             "shorts_clipper.audio.tts._synthesize_audio_bytes",
             return_value=(b"fake-mp3", raw),
         ):
-            with mock.patch(
-                "shorts_clipper.audio.tts.transcode_to_wav", return_value=True
-            ):
-                with mock.patch(
-                    "shorts_clipper.audio.tts._tts_wav_duration", return_value=4.0
-                ):
+            with mock.patch("shorts_clipper.audio.tts.transcode_to_wav", return_value=True):
+                with mock.patch("shorts_clipper.audio.tts._tts_wav_duration", return_value=4.0):
                     path, got = synthesize_voiceover_boundaries(LINE, tmp_path / "vo.wav")
     assert path is not None
     _assert_sane(got)
@@ -560,9 +528,7 @@ def test_alignment_model_drops_the_en_suffix_for_other_languages(monkeypatch):
             captured["name"] = name
             captured["kwargs"] = kwargs
 
-    with mock.patch(
-        "faster_whisper.WhisperModel", _FakeModel, create=True
-    ):
+    with mock.patch("faster_whisper.WhisperModel", _FakeModel, create=True):
         piper_tts._align_model_cache.clear()
         piper_tts._alignment_model("ru")
         assert captured["name"] == "tiny"
@@ -767,9 +733,7 @@ def test_render_inputs_are_reproducible():
 def test_piper_receives_the_mapped_length_scale(tmp_path):
     voice = _FakePiperVoice()
     with _piper_stub(voice=voice):
-        path, bounds = piper_tts.synthesize(
-            LINE, tmp_path / "vo.wav", rate="+25%", pitch="+3Hz"
-        )
+        path, bounds = piper_tts.synthesize(LINE, tmp_path / "vo.wav", rate="+25%", pitch="+3Hz")
     assert path is not None
     config = _FakeSynthesisConfig.created[-1]
     # edge "+25%" (1.25x faster) -> length_scale 1/1.25, i.e. SHORTER audio.

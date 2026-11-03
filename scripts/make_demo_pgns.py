@@ -21,9 +21,7 @@ try:
     import chess.pgn
 except ImportError:  # pragma: no cover
     chess = None  # noqa: F811
-    raise SystemExit(
-        "python-chess is required: pip install 'shorts-clipper[chess]'"
-    ) from None
+    raise SystemExit("python-chess is required: pip install 'shorts-clipper[chess]'") from None
 
 
 OPENINGS = (

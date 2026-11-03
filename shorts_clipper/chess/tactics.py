@@ -119,9 +119,7 @@ def plan_tactic(
         piece = board.piece_at(move.from_square)
         symbol = piece.symbol() if piece is not None else "p"
         captured = dst if board.piece_at(move.to_square) else None
-        hidden = tuple(
-            dict.fromkeys(s for s in (src, dst, captured) if s)
-        )
+        hidden = tuple(dict.fromkeys(s for s in (src, dst, captured) if s))
 
         # Six short frames make the piece slide rather than teleport.  The
         # arrow only appears after the piece has landed, like Lichess.
@@ -259,9 +257,7 @@ def _build_voice_track(
         delay_ms = int(round(start * 1000))
         src = f"[{idx + 1}:a]"
         delayed = f"[v{idx}]"
-        links.append(
-            f"{src}adelay=delays={delay_ms}|{delay_ms}:all=1{delayed}"
-        )
+        links.append(f"{src}adelay=delays={delay_ms}|{delay_ms}:all=1{delayed}")
 
     # Chain amix two inputs at a time because amix can take many inputs but the
     # chain keeps the graph readable.
@@ -280,13 +276,23 @@ def _build_voice_track(
 
     filter_complex = ";".join(links)
     cmd = [
-        ffmpeg, "-y", "-v", "error",
+        ffmpeg,
+        "-y",
+        "-v",
+        "error",
         *inputs,
-        "-filter_complex", filter_complex,
-        "-map", mix_out,
-        "-t", f"{duration:.3f}",
-        "-c:a", "pcm_s16le",
-        "-ar", "48000", "-ac", "2",
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        mix_out,
+        "-t",
+        f"{duration:.3f}",
+        "-c:a",
+        "pcm_s16le",
+        "-ar",
+        "48000",
+        "-ac",
+        "2",
         str(out),
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
@@ -364,9 +370,7 @@ def render_tactic(
         if voice and any(plan.voice_lines):
             voice_files = _synthesize_lines(plan.voice_lines, work)
             voice_durations = [_wav_duration(p) if p else 0.0 for p in voice_files]
-            plan.clip_plan.holds, plan.frame_starts = _adjust_holds_for_voice(
-                plan, voice_durations
-            )
+            plan.clip_plan.holds, plan.frame_starts = _adjust_holds_for_voice(plan, voice_durations)
 
         silent_video = render_clip(plan.clip_plan, work / "silent.mp4", work_dir=work)
         if silent_video is None:
@@ -380,11 +384,24 @@ def render_tactic(
             if voice_wav is not None:
                 voiced = work / "voiced.mp4"
                 cmd = [
-                    ffmpeg_path(), "-y", "-v", "error",
-                    "-i", str(silent_video),
-                    "-i", str(voice_wav),
-                    "-map", "0:v", "-map", "1:a",
-                    "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                    ffmpeg_path(),
+                    "-y",
+                    "-v",
+                    "error",
+                    "-i",
+                    str(silent_video),
+                    "-i",
+                    str(voice_wav),
+                    "-map",
+                    "0:v",
+                    "-map",
+                    "1:a",
+                    "-c:v",
+                    "copy",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "192k",
                     "-shortest",
                     str(voiced),
                 ]
@@ -403,7 +420,10 @@ def render_tactic(
         if voiced != out:
             subprocess.run(
                 [ffmpeg_path(), "-y", "-v", "error", "-i", str(voiced), "-c", "copy", str(out)],
-                capture_output=True, text=True, timeout=120, check=False,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
             )
         return out if out.is_file() else voiced
     finally:

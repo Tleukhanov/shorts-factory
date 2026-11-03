@@ -125,9 +125,7 @@ def test_write_metadata_contains_title_and_links(tmp_path, sample_decision):
 
 def test_select_moments_picks_best_across_games(sample_games):
     cfg = analysis_format.AnalysisConfig(critical_cp=200, min_ply=10)
-    decisions, stats = analysis_format.select_moments(
-        sample_games, count=5, cfg=cfg
-    )
+    decisions, stats = analysis_format.select_moments(sample_games, count=5, cfg=cfg)
     assert decisions
     assert len(decisions) <= 2  # fixture has two games with blunders
     losses = [d.mover_loss_cp for d in decisions]
@@ -152,9 +150,7 @@ def test_select_moments_prefers_club_members(sample_games):
 
 def test_select_moments_deduplicates_by_position_and_move(sample_games):
     cfg = analysis_format.AnalysisConfig(critical_cp=200, min_ply=10)
-    decisions, _ = analysis_format.select_moments(
-        sample_games, count=5, cfg=cfg
-    )
+    decisions, _ = analysis_format.select_moments(sample_games, count=5, cfg=cfg)
     keys = {f"{d.fen_before} {d.uci}" for d in decisions}
     assert len(keys) == len(decisions)
 

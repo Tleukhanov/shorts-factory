@@ -213,9 +213,7 @@ class FactoryClipModeTests(unittest.TestCase):
             fake_runner = mock.MagicMock()
             fake_runner.run.return_value = [out]
             fake_stock = mock.MagicMock()
-            fake_stock.run_stock_short.side_effect = AssertionError(
-                "must not run stock"
-            )
+            fake_stock.run_stock_short.side_effect = AssertionError("must not run stock")
             with mock.patch.dict(
                 sys.modules,
                 {
@@ -285,9 +283,7 @@ class RunClipsParserTests(unittest.TestCase):
         settings = SimpleNamespace()
         fake_runner = mock.MagicMock()
         fake_runner.run.return_value = [Path("a.mp4")]
-        with mock.patch.dict(
-            sys.modules, {"shorts_clipper.pipeline.runner": fake_runner}
-        ):
+        with mock.patch.dict(sys.modules, {"shorts_clipper.pipeline.runner": fake_runner}):
             run_clips._process_batch_items(
                 ["https://www.youtube.com/watch?v=vod123"], args, settings
             )

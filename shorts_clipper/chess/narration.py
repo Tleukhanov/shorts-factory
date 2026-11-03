@@ -108,10 +108,20 @@ MATE_PROOF_MOVES = 2
 _MOVE_FORMS = ("ход", "хода", "ходов")
 _PAWN_FORMS = ("пешка", "пешки", "пешек")
 _PIECE_NOM = {
-    "p": "пешка", "n": "конь", "b": "слон", "r": "ладья", "q": "ферзь", "k": "король",
+    "p": "пешка",
+    "n": "конь",
+    "b": "слон",
+    "r": "ладья",
+    "q": "ферзь",
+    "k": "король",
 }
 _PIECE_GEN = {
-    "p": "пешку", "n": "коня", "b": "слона", "r": "ладью", "q": "ферзя", "k": "короля",
+    "p": "пешку",
+    "n": "коня",
+    "b": "слона",
+    "r": "ладью",
+    "q": "ферзя",
+    "k": "короля",
 }
 # Values come from analysis rather than a second table: the numbers on the band
 # then match Decision.caption(), which prints the same scale.
@@ -333,10 +343,14 @@ def _evals(decision, mover: str) -> tuple[str, str]:
     mate_before = getattr(decision, "mate_before", None)
     mate_after = getattr(decision, "mate_after", None)
     return (
-        format_eval(None if before is None else sign * _as_int(before),
-                    None if mate_before is None else sign * _as_int(mate_before)),
-        format_eval(None if after is None else sign * _as_int(after),
-                    None if mate_after is None else sign * _as_int(mate_after)),
+        format_eval(
+            None if before is None else sign * _as_int(before),
+            None if mate_before is None else sign * _as_int(mate_before),
+        ),
+        format_eval(
+            None if after is None else sign * _as_int(after),
+            None if mate_after is None else sign * _as_int(mate_after),
+        ),
     )
 
 
@@ -732,7 +746,9 @@ def _mated_within(board, defender: bool, moves_left: int) -> bool:
         if not replies:
             return False
         for reply in replies:
-            if not _push(board, reply, lambda after: _mated_within(after, defender, moves_left - 1)):
+            if not _push(
+                board, reply, lambda after: _mated_within(after, defender, moves_left - 1)
+            ):
                 return False
         return True
     for mv in list(board.legal_moves):

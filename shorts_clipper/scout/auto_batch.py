@@ -148,8 +148,7 @@ def auto_discover(
             performance = _load_performance_map(metrics_db, settings)
             videos = [v for _, v in candidates]
             scores_map: dict[str, float] = {
-                v.video_id: round(score_vod(v, performance=performance), 1)
-                for _, v in candidates
+                v.video_id: round(score_vod(v, performance=performance), 1) for _, v in candidates
             }
             ordered = rank_vods(
                 videos,

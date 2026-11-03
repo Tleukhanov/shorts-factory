@@ -210,8 +210,9 @@ class DegradationTests(TempDirCase):
         broken = beats.BeatGrid(period=0.0)
         self.assertFalse(broken.usable)
         self.assertEqual(beats.snap_holds(self.holds, grid=broken), self.holds)
-        self.assertEqual(beats.snap_holds(self.holds, grid=beats.BeatGrid(period=float("nan"))),
-                         self.holds)
+        self.assertEqual(
+            beats.snap_holds(self.holds, grid=beats.BeatGrid(period=float("nan"))), self.holds
+        )
 
     def test_empty_holds(self):
         grid = beats.beat_grid(click_track(self.path("empty.wav")))
@@ -319,7 +320,7 @@ class EnvelopeTests(TempDirCase):
         block = numpy.frombuffer(samples, dtype=numpy.int16).astype(numpy.float64)
         window = int(round(beats.ENVELOPE_WINDOW_SECONDS * rate))
         for index in range(0, len(block) - window, window * 3):
-            chunk = block[index: index + window]
+            chunk = block[index : index + window]
             expected.append(float(numpy.sqrt((chunk * chunk).mean())))
 
         fast = beats.energy_envelope(samples, rate)

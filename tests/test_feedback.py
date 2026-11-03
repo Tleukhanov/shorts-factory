@@ -72,10 +72,14 @@ class ChannelPerformanceTests(unittest.TestCase):
             # stats, and one unpublished-but-collected clip.
             _seed_channel_clip(store, "hit", 100, True)
             _seed_channel_clip(store, "hit", 300, True)
-            store.record_clip(ClipRecord(
-                video_id="hit_nostats", source_url="https://youtu.be/hit_nostats",
-                channel="hit", published=True,
-            ))
+            store.record_clip(
+                ClipRecord(
+                    video_id="hit_nostats",
+                    source_url="https://youtu.be/hit_nostats",
+                    channel="hit",
+                    published=True,
+                )
+            )
             _seed_channel_clip(store, "hit", 999, False)
             # weak channel: two published, low-view clips.
             _seed_channel_clip(store, "weak", 5, True)
@@ -136,10 +140,14 @@ class ChannelPerformanceTests(unittest.TestCase):
             store = self._store(tmp)
             _seed_channel_clip(store, "c", 100, True)
             _seed_channel_clip(store, "c", 1000, False)
-            store.record_clip(ClipRecord(
-                video_id="no_views", source_url="https://youtu.be/no_views",
-                channel="c", published=True,
-            ))
+            store.record_clip(
+                ClipRecord(
+                    video_id="no_views",
+                    source_url="https://youtu.be/no_views",
+                    channel="c",
+                    published=True,
+                )
+            )
             row = store.channel_performance()[0]
             self.assertEqual(row["avg_views"], 100.0)
             self.assertEqual(row["median_views"], 100.0)
@@ -148,13 +156,15 @@ class ChannelPerformanceTests(unittest.TestCase):
     def test_source_channel_keys_and_feeds_scoring(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = self._store(tmp)
-            store.record_clip(ClipRecord(
-                video_id="loop1",
-                source_url="https://youtu.be/loop1",
-                channel="профиль",
-                source_channel="ИмяКаналаYT",
-                published=True,
-            ))
+            store.record_clip(
+                ClipRecord(
+                    video_id="loop1",
+                    source_url="https://youtu.be/loop1",
+                    channel="профиль",
+                    source_channel="ИмяКаналаYT",
+                    published=True,
+                )
+            )
             store.update_stats("loop1", views=5_000)
 
             rows = store.channel_performance()
@@ -172,12 +182,14 @@ class ChannelPerformanceTests(unittest.TestCase):
             self.assertEqual(feedback_bonus("НетЗаписей", perf), 0.0)
 
             # Legacy rows without source_channel still group by profile name.
-            store.record_clip(ClipRecord(
-                video_id="legacy1",
-                source_url="https://youtu.be/legacy1",
-                channel="старый_профиль",
-                published=True,
-            ))
+            store.record_clip(
+                ClipRecord(
+                    video_id="legacy1",
+                    source_url="https://youtu.be/legacy1",
+                    channel="старый_профиль",
+                    published=True,
+                )
+            )
             store.update_stats("legacy1", views=1_000)
             legacy = {r["channel"]: r for r in store.channel_performance()}
             self.assertIn("старый_профиль", legacy)
@@ -204,9 +216,7 @@ class ScoreVodFeedbackTests(unittest.TestCase):
         self.assertEqual(feedback_bonus("unknown", {"proven": 200_000.0}), 0.0)
         self.assertEqual(feedback_bonus("proven", {}), 0.0)
         self.assertEqual(feedback_bonus("proven", None), 0.0)
-        self.assertEqual(
-            score_vod(video, now=NOW, performance={"other": 200_000.0}), base
-        )
+        self.assertEqual(score_vod(video, now=NOW, performance={"other": 200_000.0}), base)
 
     def test_backward_compatible_defaults(self):
         video = make_video("a", title="CLUTCH", view_count=50_000, duration_seconds=2400)
@@ -259,12 +269,14 @@ class AutoBatchFeedbackTests(unittest.TestCase):
         try:
             for i in range(3):
                 video_id = f"m{i}"
-                store.record_clip(ClipRecord(
-                    video_id=video_id,
-                    source_url=f"https://youtu.be/{video_id}",
-                    channel=channel,
-                    published=True,
-                ))
+                store.record_clip(
+                    ClipRecord(
+                        video_id=video_id,
+                        source_url=f"https://youtu.be/{video_id}",
+                        channel=channel,
+                        published=True,
+                    )
+                )
                 store.update_stats(video_id, views=views)
         finally:
             store.close()
@@ -282,7 +294,10 @@ class AutoBatchFeedbackTests(unittest.TestCase):
                 out = auto_discover(settings, query="cs2", providers=("youtube",), max_results=10)
             self.assertEqual([item["video_id"] for item in out], ["b_vod", "a_vod"])
             self.assertGreater(out[0]["score"], out[1]["score"])
-            self.assertEqual(out[0]["score"], round(score_vod(videos[0], performance={"hit_channel": 200_000.0}), 1))
+            self.assertEqual(
+                out[0]["score"],
+                round(score_vod(videos[0], performance={"hit_channel": 200_000.0}), 1),
+            )
             # The provider's source channel is exposed for the metrics record.
             self.assertEqual(out[0]["channel"], "hit_channel")
             self.assertEqual(out[1]["channel"], "unknown_channel")
@@ -369,18 +384,22 @@ class AutoBatchFeedbackTests(unittest.TestCase):
             for item in first:
                 store = MetricsStore(db_path)
                 try:
-                    store.record_clip(ClipRecord(
-                        video_id=item["video_id"],
-                        source_url=item["url"],
-                        channel="профиль",
-                        source_channel="hit_channel",
-                        published=False,
-                    ))
+                    store.record_clip(
+                        ClipRecord(
+                            video_id=item["video_id"],
+                            source_url=item["url"],
+                            channel="профиль",
+                            source_channel="hit_channel",
+                            published=False,
+                        )
+                    )
                 finally:
                     store.close()
 
             with mock.patch("shorts_clipper.scout.auto_batch.scout", return_value=videos):
-                second = auto_discover(settings, query="cs2", providers=("youtube",), max_results=10)
+                second = auto_discover(
+                    settings, query="cs2", providers=("youtube",), max_results=10
+                )
             self.assertEqual(second, [])
 
 

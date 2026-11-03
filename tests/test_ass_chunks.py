@@ -19,7 +19,9 @@ def _fast_words() -> list[TranscriptWord]:
 def _fast_segments() -> list[TranscriptSegment]:
     """Build one fast-speech segment."""
     words = _fast_words()
-    return [TranscriptSegment(start=0.0, end=0.24, text=" ".join(w.word for w in words), words=words)]
+    return [
+        TranscriptSegment(start=0.0, end=0.24, text=" ".join(w.word for w in words), words=words)
+    ]
 
 
 def _overlap_segments() -> list[TranscriptSegment]:

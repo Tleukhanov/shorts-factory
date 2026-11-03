@@ -110,7 +110,8 @@ def _board_span(img) -> tuple[int, int, int, int] | None:
     mid = BOARD_TOP + BOARD // 2
     columns = [x for x in range(FRAME_W) if img.getpixel((x, mid)) != BOARD_BG]
     rows = [
-        y for y in range(BOARD_TOP - 20, BOARD_TOP + BOARD + 20)
+        y
+        for y in range(BOARD_TOP - 20, BOARD_TOP + BOARD + 20)
         if img.getpixel((FRAME_W // 2, y)) != BOARD_BG
     ]
     if not columns or not rows:
@@ -157,13 +158,16 @@ class RenderTests(unittest.TestCase):
 
     def test_without_info_the_captions_still_render(self):
         with tempfile.TemporaryDirectory() as tmp:
-            img = _render(tmp, _spec(
-                None,
-                top_text="Ход 34: Qd6+",
-                bottom_text="Магнус Карлсен — Игнитий Непомнящий",
-                eval_text="+1.2",
-                accent="good",
-            ))
+            img = _render(
+                tmp,
+                _spec(
+                    None,
+                    top_text="Ход 34: Qd6+",
+                    bottom_text="Магнус Карлсен — Игнитий Непомнящий",
+                    eval_text="+1.2",
+                    accent="good",
+                ),
+            )
             self.assertEqual(img.size, (FRAME_W, FRAME_H))
             self.assertIsNotNone(_board_span(img))
 
@@ -214,28 +218,32 @@ class RenderTests(unittest.TestCase):
             img = _render(tmp, _spec(FULL_INFO))
             biggest = _largest_black_band(img, BOARD_TOP + BOARD, FRAME_H)
             self.assertLess(
-                biggest, MAX_BLACK_BAND,
+                biggest,
+                MAX_BLACK_BAND,
                 f"{biggest}px of pure black below the board, was 459px before",
             )
 
     def test_hook_colour_follows_the_accent(self):
         with tempfile.TemporaryDirectory() as tmp:
-            band = _render(tmp, _spec(FULL_INFO, accent="bad")).crop((0, INFO_TOP, FRAME_W, FRAME_H))
+            band = _render(tmp, _spec(FULL_INFO, accent="bad")).crop(
+                (0, INFO_TOP, FRAME_W, FRAME_H)
+            )
             self.assertIn(ACCENT_BAD, {colour for _, colour in band.getcolors(maxcolors=1 << 20)})
-            band = _render(tmp, _spec(FULL_INFO, accent="good")).crop((0, INFO_TOP, FRAME_W, FRAME_H))
+            band = _render(tmp, _spec(FULL_INFO, accent="good")).crop(
+                (0, INFO_TOP, FRAME_W, FRAME_H)
+            )
             self.assertIn(ACCENT_GOOD, {colour for _, colour in band.getcolors(maxcolors=1 << 20)})
 
 
 @unittest.skipUnless(HAVE_PIL, "Pillow not installed")
 class LongTextTests(unittest.TestCase):
     def test_very_long_hook_wraps_or_shrinks_and_still_fits_the_frame(self):
-        hook = (
-            "This is the move that ended the game and nobody saw it coming "
-            "because " * 12
-        )
+        hook = "This is the move that ended the game and nobody saw it coming because " * 12
         with tempfile.TemporaryDirectory() as tmp:
-            img = _render(tmp, _spec(FrameInfo(hook=hook, progress="3 / 4",
-                                               players="a - b", moved_san="Qh5#")))
+            img = _render(
+                tmp,
+                _spec(FrameInfo(hook=hook, progress="3 / 4", players="a - b", moved_san="Qh5#")),
+            )
             self.assertEqual(img.size, (FRAME_W, FRAME_H))
 
     def test_hook_with_no_spaces_at_all_does_not_raise(self):
@@ -245,8 +253,12 @@ class LongTextTests(unittest.TestCase):
 
     def test_overlong_detail_and_players_do_not_raise(self):
         with tempfile.TemporaryDirectory() as tmp:
-            img = _render(tmp, _spec(FrameInfo(hook="Крюк", detail="d" * 900,
-                                               players="p" * 400, moved_san="m" * 200)))
+            img = _render(
+                tmp,
+                _spec(
+                    FrameInfo(hook="Крюк", detail="d" * 900, players="p" * 400, moved_san="m" * 200)
+                ),
+            )
             self.assertEqual(img.size, (FRAME_W, FRAME_H))
 
     def test_band_never_overflows_past_the_frame(self):
@@ -254,10 +266,20 @@ class LongTextTests(unittest.TestCase):
         # the frame still ends in empty space instead of in a half-cut line of
         # type. Ink on the last row would mean the band ran off the frame.
         with tempfile.TemporaryDirectory() as tmp:
-            img = _render(tmp, _spec(FrameInfo(hook="Хук " * 200, detail="деталь " * 100,
-                                               progress="1 / 2", eval_before="+1.0",
-                                               eval_after="-4.0", players="а - б",
-                                               moved_san="Qd6+")))
+            img = _render(
+                tmp,
+                _spec(
+                    FrameInfo(
+                        hook="Хук " * 200,
+                        detail="деталь " * 100,
+                        progress="1 / 2",
+                        eval_before="+1.0",
+                        eval_after="-4.0",
+                        players="а - б",
+                        moved_san="Qd6+",
+                    )
+                ),
+            )
             self.assertEqual(img.size, (FRAME_W, FRAME_H))
             last = img.crop((0, FRAME_H - 1, FRAME_W, FRAME_H)).convert("L")
             self.assertLessEqual(last.getextrema()[1], 60, "band ink reached the last row")

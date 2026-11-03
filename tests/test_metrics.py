@@ -103,17 +103,13 @@ class MetricsStoreTests(unittest.TestCase):
             store.record_clip(ClipRecord(video_id="p1", source_url="https://youtu.be/p1"))
 
             store.mark_published("p1", publish_ts=_today_iso(12))
-            row = store._conn.execute(
-                "SELECT * FROM clips WHERE video_id=?", ("p1",)
-            ).fetchone()
+            row = store._conn.execute("SELECT * FROM clips WHERE video_id=?", ("p1",)).fetchone()
             self.assertEqual(row["published"], 1)
             self.assertEqual(row["publish_ts"], _today_iso(12))
 
             # A later mark with no timestamp keeps the existing publish_ts.
             store.mark_published("p1")
-            row = store._conn.execute(
-                "SELECT * FROM clips WHERE video_id=?", ("p1",)
-            ).fetchone()
+            row = store._conn.execute("SELECT * FROM clips WHERE video_id=?", ("p1",)).fetchone()
             self.assertEqual(row["publish_ts"], _today_iso(12))
             store.close()
 
@@ -128,9 +124,7 @@ class MetricsStoreTests(unittest.TestCase):
                 platform_id="vid123",
                 short_url="https://youtube.com/shorts/vid123",
             )
-            row = store._conn.execute(
-                "SELECT * FROM clips WHERE video_id=?", ("pub1",)
-            ).fetchone()
+            row = store._conn.execute("SELECT * FROM clips WHERE video_id=?", ("pub1",)).fetchone()
             self.assertEqual(row["platform"], "youtube")
             self.assertEqual(row["platform_id"], "vid123")
             self.assertEqual(row["short_url"], "https://youtube.com/shorts/vid123")
@@ -139,12 +133,8 @@ class MetricsStoreTests(unittest.TestCase):
             self.assertIsNotNone(row["publish_ts"])
 
             # Re-calling is idempotent: overwrites with the same shape, no error.
-            store.record_publish(
-                "pub1", "youtube", platform_id="vid999", short_url=None
-            )
-            row = store._conn.execute(
-                "SELECT * FROM clips WHERE video_id=?", ("pub1",)
-            ).fetchone()
+            store.record_publish("pub1", "youtube", platform_id="vid999", short_url=None)
+            row = store._conn.execute("SELECT * FROM clips WHERE video_id=?", ("pub1",)).fetchone()
             self.assertEqual(row["platform_id"], "vid999")
             self.assertIsNone(row["short_url"])
             self.assertEqual(row["published"], 1)
@@ -167,9 +157,7 @@ class MetricsStoreTests(unittest.TestCase):
             store.record_clip(ClipRecord(video_id="s1", source_url="https://youtu.be/s1"))
 
             store.update_stats("s1", views=100, likes=5, comments=2)
-            row = store._conn.execute(
-                "SELECT * FROM clips WHERE video_id=?", ("s1",)
-            ).fetchone()
+            row = store._conn.execute("SELECT * FROM clips WHERE video_id=?", ("s1",)).fetchone()
             self.assertEqual(row["views"], 100)
             self.assertEqual(row["likes"], 5)
             self.assertEqual(row["comments"], 2)
@@ -177,9 +165,7 @@ class MetricsStoreTests(unittest.TestCase):
 
             # None args must NOT clobber existing values.
             store.update_stats("s1", views=200, likes=None, comments=None)
-            row = store._conn.execute(
-                "SELECT * FROM clips WHERE video_id=?", ("s1",)
-            ).fetchone()
+            row = store._conn.execute("SELECT * FROM clips WHERE video_id=?", ("s1",)).fetchone()
             self.assertEqual(row["views"], 200)
             self.assertEqual(row["likes"], 5)
             self.assertEqual(row["comments"], 2)
@@ -189,18 +175,33 @@ class MetricsStoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             store = self._store(tmp)
             # Old, never collected.
-            store.record_clip(ClipRecord(video_id="old", source_url="https://youtu.be/old",
-                                         publish_ts=_past_iso(6)))
+            store.record_clip(
+                ClipRecord(
+                    video_id="old", source_url="https://youtu.be/old", publish_ts=_past_iso(6)
+                )
+            )
             # Recent, never collected — excluded by an aggressive min_age.
-            store.record_clip(ClipRecord(video_id="newish", source_url="https://youtu.be/new",
-                                         publish_ts=_past_iso(1)))
+            store.record_clip(
+                ClipRecord(
+                    video_id="newish", source_url="https://youtu.be/new", publish_ts=_past_iso(1)
+                )
+            )
             # Published but never collected — must appear.
-            store.record_clip(ClipRecord(video_id="pub", source_url="https://youtu.be/pub",
-                                         publish_ts=_past_iso(5)))
+            store.record_clip(
+                ClipRecord(
+                    video_id="pub", source_url="https://youtu.be/pub", publish_ts=_past_iso(5)
+                )
+            )
             store.mark_published("pub", publish_ts=_past_iso(5))
             # Published AND collected — excluded.
-            store.record_clip(ClipRecord(video_id="done", source_url="https://youtu.be/done",
-                                         published=True, publish_ts=_past_iso(1)))
+            store.record_clip(
+                ClipRecord(
+                    video_id="done",
+                    source_url="https://youtu.be/done",
+                    published=True,
+                    publish_ts=_past_iso(1),
+                )
+            )
             store.mark_published("done", publish_ts=_past_iso(1))
             store.update_stats("done", views=99)
 
@@ -214,8 +215,14 @@ class MetricsStoreTests(unittest.TestCase):
     def test_published_rows_refreshed_after_ttl(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = self._store(tmp)
-            store.record_clip(ClipRecord(video_id="pub", source_url="https://youtu.be/pub",
-                                         published=True, publish_ts=_past_iso(10)))
+            store.record_clip(
+                ClipRecord(
+                    video_id="pub",
+                    source_url="https://youtu.be/pub",
+                    published=True,
+                    publish_ts=_past_iso(10),
+                )
+            )
             store.mark_published("pub", publish_ts=_past_iso(10))
             store.update_stats("pub", views=10)
             # Backdate the collection so the row is "stale".
@@ -266,18 +273,28 @@ class MetricsStoreTests(unittest.TestCase):
     def test_top_hooks_groups_by_hook_text(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = self._store(tmp)
-            store.record_clip(ClipRecord(video_id="h1", source_url="https://youtu.be/h1",
-                                         hook="HYPE", channel="c1"))
+            store.record_clip(
+                ClipRecord(
+                    video_id="h1", source_url="https://youtu.be/h1", hook="HYPE", channel="c1"
+                )
+            )
             store.update_stats("h1", views=50)
-            store.record_clip(ClipRecord(video_id="h2", source_url="https://youtu.be/h2",
-                                         hook="HYPE", channel="c2"))
+            store.record_clip(
+                ClipRecord(
+                    video_id="h2", source_url="https://youtu.be/h2", hook="HYPE", channel="c2"
+                )
+            )
             store.update_stats("h2", views=30)
-            store.record_clip(ClipRecord(video_id="h3", source_url="https://youtu.be/h3",
-                                         hook="SLOW", channel="c1"))
+            store.record_clip(
+                ClipRecord(
+                    video_id="h3", source_url="https://youtu.be/h3", hook="SLOW", channel="c1"
+                )
+            )
             store.update_stats("h3", views=10)
             # No hook text — excluded from top hooks by design.
-            store.record_clip(ClipRecord(video_id="h4", source_url="https://youtu.be/h4",
-                                         hook=None, channel="c1"))
+            store.record_clip(
+                ClipRecord(video_id="h4", source_url="https://youtu.be/h4", hook=None, channel="c1")
+            )
             store.update_stats("h4", views=200)
 
             hooks = store.top_hooks()
@@ -292,11 +309,13 @@ class MetricsStoreTests(unittest.TestCase):
             store = self._store(tmp)
             store.record_clip(ClipRecord(video_id="h1", source_url="https://youtu.be/h1"))
             store.update_stats("h1", views=10)
-            store.record_clip(ClipRecord(video_id="a", source_url="https://youtu.be/a",
-                                         affiliate_id="partner-x"))
+            store.record_clip(
+                ClipRecord(video_id="a", source_url="https://youtu.be/a", affiliate_id="partner-x")
+            )
             store.update_stats("a", views=25)
-            store.record_clip(ClipRecord(video_id="b", source_url="https://youtu.be/b",
-                                         affiliate_id="partner-x"))
+            store.record_clip(
+                ClipRecord(video_id="b", source_url="https://youtu.be/b", affiliate_id="partner-x")
+            )
             store.update_stats("b", views=5)
 
             partners = store.top_partners()
@@ -309,18 +328,34 @@ class MetricsStoreTests(unittest.TestCase):
     def test_summary(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = self._store(tmp)
-            store.record_clip(ClipRecord(video_id="a", source_url="https://youtu.be/a",
-                                         channel="c1", published=True,
-                                         publish_ts=_today_iso(9)))
+            store.record_clip(
+                ClipRecord(
+                    video_id="a",
+                    source_url="https://youtu.be/a",
+                    channel="c1",
+                    published=True,
+                    publish_ts=_today_iso(9),
+                )
+            )
             store.update_stats("a", views=5)
-            store.record_clip(ClipRecord(video_id="b", source_url="https://youtu.be/b",
-                                         channel="c2", published=False))
-            store.record_clip(ClipRecord(video_id="c", source_url="https://youtu.be/c",
-                                         channel="c1", published=True,
-                                         publish_ts=_today_iso(11)))
+            store.record_clip(
+                ClipRecord(
+                    video_id="b", source_url="https://youtu.be/b", channel="c2", published=False
+                )
+            )
+            store.record_clip(
+                ClipRecord(
+                    video_id="c",
+                    source_url="https://youtu.be/c",
+                    channel="c1",
+                    published=True,
+                    publish_ts=_today_iso(11),
+                )
+            )
             store.update_stats("c", views=50)
-            store.record_clip(ClipRecord(video_id="d", source_url="https://youtu.be/d",
-                                         channel="c2"))
+            store.record_clip(
+                ClipRecord(video_id="d", source_url="https://youtu.be/d", channel="c2")
+            )
             store.update_stats("d", views=5)
 
             summary = store.summary()
@@ -338,32 +373,49 @@ class MetricsStoreTests(unittest.TestCase):
             store = self._store(tmp)
             channel = "team_a"
             for i in range(4):
-                store.record_clip(ClipRecord(
-                    video_id=f"v{i}",
-                    source_url=f"https://youtu.be/v{i}",
-                    channel=channel,
-                    published=True,
-                    publish_ts=_today_iso(8 + i),
-                ))
+                store.record_clip(
+                    ClipRecord(
+                        video_id=f"v{i}",
+                        source_url=f"https://youtu.be/v{i}",
+                        channel=channel,
+                        published=True,
+                        publish_ts=_today_iso(8 + i),
+                    )
+                )
             # A published row from yesterday or another channel must not count.
             yesterday = (datetime.now(UTC) - timedelta(days=1)).date().isoformat()
-            store.record_clip(ClipRecord(
-                video_id="y", source_url="https://youtu.be/y", channel=channel,
-                published=True, publish_ts=f"{yesterday}T09:00:00+00:00",
-            ))
-            store.record_clip(ClipRecord(
-                video_id="other", source_url="https://youtu.be/other", channel="team_b",
-                published=True, publish_ts=_today_iso(12),
-            ))
+            store.record_clip(
+                ClipRecord(
+                    video_id="y",
+                    source_url="https://youtu.be/y",
+                    channel=channel,
+                    published=True,
+                    publish_ts=f"{yesterday}T09:00:00+00:00",
+                )
+            )
+            store.record_clip(
+                ClipRecord(
+                    video_id="other",
+                    source_url="https://youtu.be/other",
+                    channel="team_b",
+                    published=True,
+                    publish_ts=_today_iso(12),
+                )
+            )
 
             self.assertTrue(should_publish_today(store, channel, 5))
             self.assertFalse(should_publish_today(store, channel, 4))
 
             # Unpublished rows do not count toward the cap.
-            store.record_clip(ClipRecord(
-                video_id="unpub", source_url="https://youtu.be/unpub", channel=channel,
-                published=False, publish_ts=_today_iso(13),
-            ))
+            store.record_clip(
+                ClipRecord(
+                    video_id="unpub",
+                    source_url="https://youtu.be/unpub",
+                    channel=channel,
+                    published=False,
+                    publish_ts=_today_iso(13),
+                )
+            )
             self.assertTrue(should_publish_today(store, channel, 5))
             store.close()
 
@@ -472,9 +524,7 @@ class GeminiTitleCandidatesTests(unittest.TestCase):
         with patch.object(provider, "generate_content", return_value=mock_response):
             meta = provider.generate_clip_metadata([])
 
-        self.assertEqual(
-            meta["candidates"], ["First title", "Second title", "Third title"]
-        )
+        self.assertEqual(meta["candidates"], ["First title", "Second title", "Third title"])
         self.assertEqual(meta["title"], "Second title")
 
     def test_generate_clip_metadata_candidates_empty_when_absent(self):
@@ -485,8 +535,7 @@ class GeminiTitleCandidatesTests(unittest.TestCase):
         provider = GeminiProvider(api_key="test")
         mock_response = MagicMock()
         mock_response.text = (
-            '{"selected_title": "Only title",'
-            ' "description": "A description.", "tags": ["cs2"]}'
+            '{"selected_title": "Only title", "description": "A description.", "tags": ["cs2"]}'
         )
         with patch.object(provider, "generate_content", return_value=mock_response):
             meta = provider.generate_clip_metadata([])
@@ -562,12 +611,8 @@ class RunnerMarkProcessedTests(unittest.TestCase):
         stack.enter_context(patch("shorts_clipper.pipeline.runner.burn_subtitles"))
         stack.enter_context(patch("shorts_clipper.rendering.thumbnailer.extract_thumbnail"))
         gem = stack.enter_context(patch("shorts_clipper.pipeline.runner.GeminiProvider"))
-        finisher = stack.enter_context(
-            patch("shorts_clipper.pipeline.runner.EditorialFinisher")
-        )
-        store = stack.enter_context(
-            patch("shorts_clipper.core.processed_store.ProcessedStore")
-        )
+        finisher = stack.enter_context(patch("shorts_clipper.pipeline.runner.EditorialFinisher"))
+        store = stack.enter_context(patch("shorts_clipper.core.processed_store.ProcessedStore"))
         engine = (
             stack.enter_context(patch("shorts_clipper.pipeline.runner.PublishingEngine"))
             if mock_engine
@@ -583,8 +628,8 @@ class RunnerMarkProcessedTests(unittest.TestCase):
             "description": "Description",
             "tags": ["cs2"],
         }
-        finisher.return_value.snap_boundaries.side_effect = (
-            lambda start, end, *args, **kwargs: ClipWindow(start=start, end=end)
+        finisher.return_value.snap_boundaries.side_effect = lambda start, end, *args, **kwargs: (
+            ClipWindow(start=start, end=end)
         )
 
     def test_mark_processed_skipped_when_flag_disabled(self):
@@ -643,9 +688,7 @@ class RunnerMarkProcessedTests(unittest.TestCase):
 
         self.assertIsInstance(result, Path)
         engine.return_value.publish.assert_called_once()
-        self.assertEqual(
-            engine.return_value.publish.call_args.kwargs["video_id"], "dummy123"
-        )
+        self.assertEqual(engine.return_value.publish.call_args.kwargs["video_id"], "dummy123")
         # A failed publish prevents the processed-mark so the video can retry.
         store.from_path.return_value.mark_processed.assert_not_called()
 

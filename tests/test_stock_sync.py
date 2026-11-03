@@ -102,9 +102,7 @@ def test_speech_window_no_trailing_uses_duration():
     fake.returncode = 0
     fake.stderr = stderr
     with mock.patch("shorts_clipper.audio.tts.subprocess.run", return_value=fake):
-        with mock.patch(
-            "shorts_clipper.audio.tts._tts_wav_duration", return_value=5.0
-        ):
+        with mock.patch("shorts_clipper.audio.tts._tts_wav_duration", return_value=5.0):
             got = speech_window("dummy.wav")
     assert got is not None
     start, end = got
@@ -124,9 +122,7 @@ def test_speech_window_trailing_trims():
     fake.returncode = 0
     fake.stderr = stderr
     with mock.patch("shorts_clipper.audio.tts.subprocess.run", return_value=fake):
-        with mock.patch(
-            "shorts_clipper.audio.tts._tts_wav_duration", return_value=5.0
-        ):
+        with mock.patch("shorts_clipper.audio.tts._tts_wav_duration", return_value=5.0):
             got = speech_window("dummy.wav")
     assert got is not None
     start, end = got

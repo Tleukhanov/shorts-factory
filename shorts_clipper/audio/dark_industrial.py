@@ -64,9 +64,9 @@ import numpy as np
 SAMPLE_RATE = 44100
 BPM = 134.0
 BEAT = 60.0 / BPM  # seconds per beat
-BAR = 4 * BEAT     # seconds per bar (4 beats / bar)
-SEED = 20240617    # fixed seed -> deterministic renders
-PEAK = 0.92        # master peak target (matches the phonk fallback)
+BAR = 4 * BEAT  # seconds per bar (4 beats / bar)
+SEED = 20240617  # fixed seed -> deterministic renders
+PEAK = 0.92  # master peak target (matches the phonk fallback)
 
 # Default output name/length.  See the "Naming" note in the module docstring:
 # must stay clear of the ``generated_`` prefix or ``pick_track`` drops it.
@@ -92,26 +92,75 @@ _SECTIONS: tuple[tuple[str, float, float], ...] = (
 # loudest exactly when it is turned fully up.
 _SECTION_CFG: dict[str, dict[str, float]] = {
     #                     drone  pad   sub   perc  kick  bright  level
-    "intro":     {"drone": 1.00, "pad": 0.95, "sub": 0.10, "perc": 0.22,
-                  "kick": 0.00, "bright": 420.0, "level": 0.20},
-    "build":     {"drone": 1.00, "pad": 0.80, "sub": 0.45, "perc": 0.35,
-                  "kick": 0.30, "bright": 1100.0, "level": 0.52},
-    "main_a":    {"drone": 0.70, "pad": 0.55, "sub": 1.00, "perc": 0.85,
-                  "kick": 1.00, "bright": 3000.0, "level": 1.00},
-    "breakdown": {"drone": 1.00, "pad": 1.00, "sub": 0.25, "perc": 0.45,
-                  "kick": 0.00, "bright": 300.0, "level": 0.34},
-    "main_b":    {"drone": 0.75, "pad": 0.50, "sub": 1.00, "perc": 1.00,
-                  "kick": 1.00, "bright": 3600.0, "level": 1.06},
-    "build_b":   {"drone": 1.00, "pad": 0.85, "sub": 0.35, "perc": 0.40,
-                  "kick": 0.25, "bright": 1400.0, "level": 0.56},
-    "final":     {"drone": 0.70, "pad": 0.55, "sub": 1.00, "perc": 1.00,
-                  "kick": 1.00, "bright": 4600.0, "level": 1.12},
+    "intro": {
+        "drone": 1.00,
+        "pad": 0.95,
+        "sub": 0.10,
+        "perc": 0.22,
+        "kick": 0.00,
+        "bright": 420.0,
+        "level": 0.20,
+    },
+    "build": {
+        "drone": 1.00,
+        "pad": 0.80,
+        "sub": 0.45,
+        "perc": 0.35,
+        "kick": 0.30,
+        "bright": 1100.0,
+        "level": 0.52,
+    },
+    "main_a": {
+        "drone": 0.70,
+        "pad": 0.55,
+        "sub": 1.00,
+        "perc": 0.85,
+        "kick": 1.00,
+        "bright": 3000.0,
+        "level": 1.00,
+    },
+    "breakdown": {
+        "drone": 1.00,
+        "pad": 1.00,
+        "sub": 0.25,
+        "perc": 0.45,
+        "kick": 0.00,
+        "bright": 300.0,
+        "level": 0.34,
+    },
+    "main_b": {
+        "drone": 0.75,
+        "pad": 0.50,
+        "sub": 1.00,
+        "perc": 1.00,
+        "kick": 1.00,
+        "bright": 3600.0,
+        "level": 1.06,
+    },
+    "build_b": {
+        "drone": 1.00,
+        "pad": 0.85,
+        "sub": 0.35,
+        "perc": 0.40,
+        "kick": 0.25,
+        "bright": 1400.0,
+        "level": 0.56,
+    },
+    "final": {
+        "drone": 0.70,
+        "pad": 0.55,
+        "sub": 1.00,
+        "perc": 1.00,
+        "kick": 1.00,
+        "bright": 4600.0,
+        "level": 1.12,
+    },
 }
 
 # A minor / F# minor pitch pool.  Root is what the sub and drone sit on.
-_ROOT_A = 55.00   # A1
+_ROOT_A = 55.00  # A1
 _ROOT_FS = 46.25  # F#1
-_ROOT_D = 73.42   # D2
+_ROOT_D = 73.42  # D2
 _MINOR = (220.00, 261.63, 329.63, 392.00)  # A3 C4 E4 G4 -- blip sequence pool
 
 
@@ -403,12 +452,15 @@ def _metal_hit(
     for i, ratio in enumerate(ratios):
         detune = 1.0 + rng.uniform(-0.012, 0.012)
         decay = tau * (1.0 - 0.11 * i)
-        sig += (1.0 / (1.0 + 1.6 * i)) * np.sin(
-            2 * np.pi * base * ratio * detune * t + rng.uniform(0, 6.28)
-        ) * _exp_env(n, decay * sr)
+        sig += (
+            (1.0 / (1.0 + 1.6 * i))
+            * np.sin(2 * np.pi * base * ratio * detune * t + rng.uniform(0, 6.28))
+            * _exp_env(n, decay * sr)
+        )
     transient = rng.standard_normal(n) * _exp_env(n, 0.006 * sr)
-    body_ir = _decay_ir(sr, 0.35, 0.09, tilt_hz=5000.0, peak_hz=base * 2.0, peak_q=6.0,
-                        seed=seed + 11)
+    body_ir = _decay_ir(
+        sr, 0.35, 0.09, tilt_hz=5000.0, peak_hz=base * 2.0, peak_q=6.0, seed=seed + 11
+    )
     sig += _fft_convolve(transient, body_ir) * 1.6
     return np.tanh(sig * 1.5) * 0.85
 
@@ -481,7 +533,9 @@ def _blip(sr: int, freq: float, dur: float = 0.09, seed: int = 0) -> np.ndarray:
     t = np.arange(n) / sr
     ph = 2 * np.pi * freq * t
     square = np.sign(np.sin(ph)) * 0.7 + np.sin(ph) * 0.3
-    env = np.minimum(1.0, np.arange(n) / (0.002 * sr)) * np.clip((n - np.arange(n)) / (0.02 * sr), 0, 1)
+    env = np.minimum(1.0, np.arange(n) / (0.002 * sr)) * np.clip(
+        (n - np.arange(n)) / (0.02 * sr), 0, 1
+    )
     noise = rng.standard_normal(n) * _exp_env(n, 0.003 * sr) * 0.25
     return np.tanh((square * env + noise) * 1.6) * 0.7
 
@@ -496,12 +550,16 @@ def _drone(sr: int, freqs: tuple[float, ...], dur: float, seed: int = 0) -> np.n
         lfo = 1.0 + rng.uniform(0.002, 0.008) * np.sin(
             2 * np.pi * rng.uniform(0.07, 0.31) * t + rng.uniform(0, 6.28)
         )
-        sig += (1.0 / (1.0 + i)) * np.sin(2 * np.pi * f0 * np.cumsum(lfo) / sr + rng.uniform(0, 6.28))
+        sig += (1.0 / (1.0 + i)) * np.sin(
+            2 * np.pi * f0 * np.cumsum(lfo) / sr + rng.uniform(0, 6.28)
+        )
     air = rng.standard_normal(n) * 0.05
-    air = _tv_biquad(air, np.linspace(400.0, 1500.0, 24), np.full(24, 1.0), sr, mode="bp",
-                    n_fft=1024)
-    sig = _tv_biquad(sig + air, np.linspace(1500.0, 900.0, 32), np.full(32, 1.05), sr,
-                     mode="lp", n_fft=2048)
+    air = _tv_biquad(
+        air, np.linspace(400.0, 1500.0, 24), np.full(24, 1.0), sr, mode="bp", n_fft=1024
+    )
+    sig = _tv_biquad(
+        sig + air, np.linspace(1500.0, 900.0, 32), np.full(32, 1.05), sr, mode="lp", n_fft=2048
+    )
     att = np.minimum(1.0, np.arange(n) / (0.35 * sr))
     return sig * att * 0.12
 
@@ -541,15 +599,17 @@ def make_dark_industrial(duration: float = DEFAULT_DURATION, bpm: float = BPM) -
     bright = np.array([c["bright"] for c in cfg], dtype=float)
 
     kick_bus = np.zeros(total)  # kick only, so it can punch through the ducked sub
-    sub_bus = np.zeros(total)   # sustained low bed
-    perc = np.zeros(total)      # metal / machine gun / impacts / blips
-    air = np.zeros(total)       # drone + pad + risers
+    sub_bus = np.zeros(total)  # sustained low bed
+    perc = np.zeros(total)  # metal / machine gun / impacts / blips
+    air = np.zeros(total)  # drone + pad + risers
     kick_times: list[float] = []  # sidechain triggers
 
     # --- 2. Pre-render the voice variations (deterministic, reused per hit). ---
     # Every voice is peak-normalized here so the mix gains below are a real balance.
-    kicks = [_peak_norm(_kick(sr, tune=t, seed=SEED + i), 1.0)
-             for i, t in enumerate((1.0, 0.994, 1.007, 1.0))]
+    kicks = [
+        _peak_norm(_kick(sr, tune=t, seed=SEED + i), 1.0)
+        for i, t in enumerate((1.0, 0.994, 1.007, 1.0))
+    ]
     subs = {
         f: _peak_norm(_sub(sr, f, bar * 1.02, drive=d, seed=SEED + int(f)), 1.0)
         for f, d in ((_ROOT_A, 1.7), (_ROOT_FS, 1.9), (_ROOT_D, 1.6))
@@ -585,8 +645,12 @@ def make_dark_industrial(duration: float = DEFAULT_DURATION, bpm: float = BPM) -
         # --- Drone + pad: sparse, cold bed, always present in some form. ---
         if drone_lvl[b] > 0.02:
             root = _ROOT_A if (b // 4) % 2 == 0 else _ROOT_FS
-            _mix(air, _drone(sr, (root, root * 1.5, root * 2.0), bar * 1.02,
-                             seed=SEED + b), t0, float(drone_lvl[b]) * 0.9 * lvl)
+            _mix(
+                air,
+                _drone(sr, (root, root * 1.5, root * 2.0), bar * 1.02, seed=SEED + b),
+                t0,
+                float(drone_lvl[b]) * 0.9 * lvl,
+            )
         if pad_lvl[b] > 0.02 and b % 2 == 0:  # pad moves every other bar, so it breathes
             _mix(air, pads[(b // 2) % len(pads)], t0, float(pad_lvl[b]) * 0.8 * lvl)
 
@@ -594,8 +658,10 @@ def make_dark_industrial(duration: float = DEFAULT_DURATION, bpm: float = BPM) -
         # Sits well under the kick on purpose: the low end is a sustained bed, so
         # the kick transients have to stay the loudest thing on the bus.
         if sub_lvl[b] > 0.05:
-            root = _ROOT_FS if sec in ("breakdown", "build_b") else (
-                _ROOT_D if is_final and b % 4 == 3 else _ROOT_A
+            root = (
+                _ROOT_FS
+                if sec in ("breakdown", "build_b")
+                else (_ROOT_D if is_final and b % 4 == 3 else _ROOT_A)
             )
             _mix(sub_bus, subs[root], t0, float(sub_lvl[b]) * 0.42 * lvl)
             if kick_lvl > 0.5:  # re-assert the low end on 1 and 3
@@ -604,8 +670,7 @@ def make_dark_industrial(duration: float = DEFAULT_DURATION, bpm: float = BPM) -
         # --- Kick: relentless 4-on-the-floor. ---
         if kick_lvl > 0.5:
             for k in range(4):
-                _mix(kick_bus, kicks[int(rng.integers(len(kicks)))], t0 + k * beat,
-                     0.85 * lvl)
+                _mix(kick_bus, kicks[int(rng.integers(len(kicks)))], t0 + k * beat, 0.85 * lvl)
                 kick_times.append(t0 + k * beat)
             if is_final and b % 4 == 3:  # extra drive on the last bar of the phrase
                 _mix(kick_bus, kicks[0], t0 + 3.5 * beat, 0.5 * lvl)
@@ -613,8 +678,7 @@ def make_dark_industrial(duration: float = DEFAULT_DURATION, bpm: float = BPM) -
         elif kick_lvl > 0.1:  # roll-in during builds
             for k in range(int(kick_lvl * 4)):
                 at = t0 + (3.0 + 0.5 * k) * beat
-                _mix(kick_bus, kicks[int(rng.integers(len(kicks)))], at,
-                     (0.35 + 0.2 * k) * lvl)
+                _mix(kick_bus, kicks[int(rng.integers(len(kicks)))], at, (0.35 + 0.2 * k) * lvl)
                 kick_times.append(at)
 
         if perc_lvl < 0.05 and not is_break:
@@ -625,11 +689,19 @@ def make_dark_industrial(duration: float = DEFAULT_DURATION, bpm: float = BPM) -
             for k, off in ((1, 1.0), (3, 3.0), (5, 4.5)):
                 if is_main and rng.random() < (0.75 if k < 5 else 0.45):
                     idx = int(rng.integers(len(clang)))
-                    _mix(perc, clang[idx], t0 + off * beat + rng.uniform(-0.008, 0.008),
-                         perc_lvl * 0.55 * lvl)
+                    _mix(
+                        perc,
+                        clang[idx],
+                        t0 + off * beat + rng.uniform(-0.008, 0.008),
+                        perc_lvl * 0.55 * lvl,
+                    )
             if b % 4 == 0 and is_main:  # heavier plate hit once a phrase
-                _mix(perc, clang[int(rng.integers(len(clang)))], t0 + 2.5 * beat,
-                     perc_lvl * 0.5 * lvl)
+                _mix(
+                    perc,
+                    clang[int(rng.integers(len(clang)))],
+                    t0 + 2.5 * beat,
+                    perc_lvl * 0.5 * lvl,
+                )
 
         # --- Machine-gun bursts: rigid grid, every other bar in the big sections. ---
         if is_main and (sec != "main_a" or b % 2 == 1):
@@ -639,8 +711,7 @@ def make_dark_industrial(duration: float = DEFAULT_DURATION, bpm: float = BPM) -
         # --- Sparse EBM blip sequence, only in the last two sections. ---
         if sec in ("main_b", "final") and b % 2 == 0:
             for k, off in enumerate((1.5, 2.5, 3.25)):
-                _mix(perc, blips[(b + k) % len(blips)], t0 + off * beat,
-                     perc_lvl * 0.22 * lvl)
+                _mix(perc, blips[(b + k) % len(blips)], t0 + off * beat, perc_lvl * 0.22 * lvl)
 
         # --- Reverse / industrial impacts: at drops and once a phrase. ---
         drops = b == 0 or (
@@ -696,8 +767,7 @@ def make_dark_industrial(duration: float = DEFAULT_DURATION, bpm: float = BPM) -
     frame_t = (np.arange(1 + (total + 2 * n_fft - n_fft) // hop) * hop) / sr
     bar_centers = (np.arange(n_bars) + 0.5) * bar
     cutoff = np.interp(frame_t, bar_centers, np.clip(bright, 120.0, 12000.0))
-    bus = _tv_biquad(bus, cutoff, np.full(len(cutoff), 1.05), sr, mode="lp",
-                     n_fft=n_fft, hop=hop)
+    bus = _tv_biquad(bus, cutoff, np.full(len(cutoff), 1.05), sr, mode="lp", n_fft=n_fft, hop=hop)
     bus = _soft_clip(bus, 0.75)
     bus = bus - float(np.mean(bus))  # keep the LFOs from leaving any DC behind
 

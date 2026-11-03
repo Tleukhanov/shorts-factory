@@ -53,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if not analysis.available():
         print(
-            "python-chess is not installed. Install the extra: pip install -e \".[chess]\"",
+            'python-chess is not installed. Install the extra: pip install -e ".[chess]"',
             file=sys.stderr,
         )
         return 2
@@ -64,8 +64,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     headers = dict(game.headers)
-    print(f"game: {headers.get('White', '?')} vs {headers.get('Black', '?')}"
-          f" ({headers.get('Result', '*')}, {headers.get('Event', '?')})")
+    print(
+        f"game: {headers.get('White', '?')} vs {headers.get('Black', '?')}"
+        f" ({headers.get('Result', '*')}, {headers.get('Event', '?')})"
+    )
     engine = "stockfish" if analysis.has_engine() else "material+piece-square (no engine)"
     print(f"evaluation: {engine}")
 
@@ -110,9 +112,7 @@ def main(argv: list[str] | None = None) -> int:
 
             offset = energetic_offset(music, random.Random(args.seed + i), plan.duration)
             print(f"  bed starts at {offset:.1f}s into the track")
-        final = clip.add_bed(
-            silent, music, args.out / f"chess_{i}.mp4", start_seconds=offset
-        )
+        final = clip.add_bed(silent, music, args.out / f"chess_{i}.mp4", start_seconds=offset)
         written.append(Path(final))
         print(f"  -> {final}")
 

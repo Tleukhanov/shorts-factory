@@ -1,4 +1,5 @@
 """Tests for optional 16:9 wide layout support."""
+
 import os
 import unittest
 
@@ -46,9 +47,7 @@ class WideCropFilterTests(unittest.TestCase):
         self.assertEqual(_WIDE_H, 1080)
 
     def test_center_crop_wide_geometry(self):
-        crop = compute_center_crop(
-            width=1080, height=1920, target_width=1920, target_height=1080
-        )
+        crop = compute_center_crop(width=1080, height=1920, target_width=1920, target_height=1080)
         self.assertEqual(crop.width, 1080)
         self.assertEqual(crop.height, 608)
 

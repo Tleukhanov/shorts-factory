@@ -31,9 +31,7 @@ class HighlightBatchTests(unittest.TestCase):
         for index in range(3):
             game = _random_game(plies=60, seed=100 + index)
             moments.extend(
-                batch._collect_moments(
-                    "highlight", game, Path(f"game_{index}.pgn"), 1, 200, 6, 5
-                )
+                batch._collect_moments("highlight", game, Path(f"game_{index}.pgn"), 1, 200, 6, 5)
             )
 
         self.assertEqual(len(moments), 3, "expected one clip per game")
@@ -44,9 +42,7 @@ class HighlightBatchTests(unittest.TestCase):
         from tests.test_chess_pacing import _random_game
 
         game = _random_game(plies=50, seed=9)
-        moments = batch._collect_moments(
-            "highlight", game, Path("g.pgn"), 1, 0, 0, 5
-        )
+        moments = batch._collect_moments("highlight", game, Path("g.pgn"), 1, 0, 0, 5)
         if not moments:
             self.skipTest("no decisive move found in the fixture game")
 
@@ -82,9 +78,7 @@ class HighlightBatchTests(unittest.TestCase):
         game.headers["White"] = "Magnus Carlsen"
         game.headers["Black"] = "Ian Nepomniachtchi"
 
-        moments = batch._collect_moments(
-            "highlight", game, Path("g.pgn"), 1, 0, 0, 5
-        )
+        moments = batch._collect_moments("highlight", game, Path("g.pgn"), 1, 0, 0, 5)
         if not moments:
             self.skipTest("no decisive move found in the fixture game")
 

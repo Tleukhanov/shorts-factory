@@ -192,11 +192,7 @@ class TikTokPublisher(Publisher):
 
             video_id = (status_res.get("data") or {}).get("video_id") or publish_id
             open_id = self.settings.tiktok_open_id
-            url = (
-                f"https://www.tiktok.com/@{open_id}/video/{video_id}"
-                if open_id
-                else None
-            )
+            url = f"https://www.tiktok.com/@{open_id}/video/{video_id}" if open_id else None
 
             return PublishResult(
                 platform=self.platform_name,

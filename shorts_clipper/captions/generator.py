@@ -681,9 +681,7 @@ def burn_subtitles(
     # Peak-aware ad-card timing: when a positive peak_second is supplied, anchor
     # the card on the sell moment instead of the fixed default start. Clamp it to
     # the clip duration and keep it at least ~1.2s from the end so it is visible.
-    card_body, offer_code = (
-        _split_ad_card_text(ad_text) if ad_text else (ad_text, None)
-    )
+    card_body, offer_code = _split_ad_card_text(ad_text) if ad_text else (ad_text, None)
     clip_duration = None
     if peak_second is not None and peak_second > 0:
         try:
@@ -950,14 +948,10 @@ def burn_subtitles(
                     f"{audio_post}[aout]"
                 )
                 filter_complex = ";".join(parts)
-                cmd.extend(
-                    ["-filter_complex", filter_complex, "-map", "[vout]", "-map", "[aout]"]
-                )
+                cmd.extend(["-filter_complex", filter_complex, "-map", "[vout]", "-map", "[aout]"])
             else:
                 filter_complex = ";".join(parts)
-                cmd.extend(
-                    ["-filter_complex", filter_complex, "-map", "[vout]", "-map", "0:a?"]
-                )
+                cmd.extend(["-filter_complex", filter_complex, "-map", "[vout]", "-map", "0:a?"])
         else:
             if use_vo:
                 bgm_af = [p for p in af_parts if not p.startswith("atempo=")]

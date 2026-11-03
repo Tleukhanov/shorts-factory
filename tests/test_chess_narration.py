@@ -184,20 +184,20 @@ class SignConventionTests(unittest.TestCase):
     def test_convention_is_documented(self):
         # The convention is the whole point of showing two numbers, so it is
         # asserted in the docstring as well as in the arithmetic.
-        self.assertIn(
-            "point of view of the player who made the move", narration.__doc__ or ""
-        )
+        self.assertIn("point of view of the player who made the move", narration.__doc__ or "")
 
     def test_white_mover_keeps_whites_perspective(self):
-        decision = _decision(color="white", ply=20, eval_before_cp=30, eval_after_cp=-280,
-                            mover_loss_cp=310)
+        decision = _decision(
+            color="white", ply=20, eval_before_cp=30, eval_after_cp=-280, mover_loss_cp=310
+        )
         info = _narrate(decision=decision, ply=20, color="white").info
         self.assertEqual(info.eval_before, "+0.3")
         self.assertEqual(info.eval_after, "-2.8")
 
     def test_black_mover_gets_the_same_pair_flipped(self):
-        decision = _decision(color="black", ply=20, eval_before_cp=30, eval_after_cp=-280,
-                            mover_loss_cp=310)
+        decision = _decision(
+            color="black", ply=20, eval_before_cp=30, eval_after_cp=-280, mover_loss_cp=310
+        )
         info = _narrate(decision=decision, ply=20, color="black").info
         self.assertEqual(info.eval_before, "-0.3")
         self.assertEqual(info.eval_after, "+2.8")
@@ -215,11 +215,19 @@ class SignConventionTests(unittest.TestCase):
         # mover means the mover is mating, and nothing may say the move walked
         # into mate.
         before, after, _ = _ply_state(OPERA_GAME, 31)
-        decision = _decision(ply=31, color="white", san="Qb8+", uci="b3b8",
-                             fen_before=before, fen_after=after, mover_loss_cp=200,
-                             mate_after=3)
-        frame = _narrate(decision=decision, ply=31, color="white",
-                         fen_before=before, fen_after=after)
+        decision = _decision(
+            ply=31,
+            color="white",
+            san="Qb8+",
+            uci="b3b8",
+            fen_before=before,
+            fen_after=after,
+            mover_loss_cp=200,
+            mate_after=3,
+        )
+        frame = _narrate(
+            decision=decision, ply=31, color="white", fen_before=before, fen_after=after
+        )
         self.assertNotIn("Мат", frame.info.hook)
         self.assertNotIn("Мат", frame.info.detail)
         self.assertEqual(frame.info.eval_after, "#3")
@@ -228,11 +236,19 @@ class SignConventionTests(unittest.TestCase):
         # The same score, read by a black mover: white mates, so the move walked
         # into it. 22...Nxf6 is met by 23.Be7# in the Immortal Game.
         before, after, _ = _ply_state(IMMORTAL_GAME, 44)
-        decision = _decision(ply=44, color="black", san="Nxf6", uci="g8f6",
-                             fen_before=before, fen_after=after, mover_loss_cp=10_000,
-                             mate_after=1)
-        frame = _narrate(decision=decision, ply=44, color="black",
-                         fen_before=before, fen_after=after)
+        decision = _decision(
+            ply=44,
+            color="black",
+            san="Nxf6",
+            uci="g8f6",
+            fen_before=before,
+            fen_after=after,
+            mover_loss_cp=10_000,
+            mate_after=1,
+        )
+        frame = _narrate(
+            decision=decision, ply=44, color="black", fen_before=before, fen_after=after
+        )
         # _sentence_case lowercases after the colon, so match case-insensitively.
         hook = frame.info.hook.lower()
         self.assertIn("мат через 1", hook)
@@ -254,8 +270,9 @@ class SignConventionTests(unittest.TestCase):
 @unittest.skipUnless(HAVE_CHESS, "python-chess not installed")
 class HookTests(unittest.TestCase):
     def test_hook_never_exceeds_the_line_budget(self):
-        decision = _decision(ply=20, color="white", mover_loss_cp=480,
-                             eval_before_cp=-30, eval_after_cp=-510)
+        decision = _decision(
+            ply=20, color="white", mover_loss_cp=480, eval_before_cp=-30, eval_after_cp=-510
+        )
         for ply in range(1, 121):
             for color in ("white", "black"):
                 frame = _narrate(decision=decision, ply=ply, color=color)
@@ -268,8 +285,7 @@ class HookTests(unittest.TestCase):
 
     def test_mate_hook_fits_at_any_distance(self):
         for distance in range(1, 31):
-            decision = _decision(ply=20, color="white", mate_after=-distance,
-                                 mover_loss_cp=10_000)
+            decision = _decision(ply=20, color="white", mate_after=-distance, mover_loss_cp=10_000)
             hook = _narrate(decision=decision, ply=20, color="white").info.hook
             self.assertLessEqual(len(hook), narration.MAX_HOOK_CHARS, hook)
             self.assertIn("мат", hook.lower())
@@ -283,20 +299,19 @@ class HookTests(unittest.TestCase):
         self.assertNotIn("вот этот ход", skim.lower())
 
     def test_skim_rotation_varies_and_stays_inside_one_pool(self):
-        hooks = {
-            _narrate(ply=ply).info.hook
-            for ply in range(4, 60, 4)
-        }
+        hooks = {_narrate(ply=ply).info.hook for ply in range(4, 60, 4)}
         self.assertGreaterEqual(len(hooks), 3, "the skim repeated one line for 14 frames")
         self.assertTrue(all(len(hook) <= narration.MAX_HOOK_CHARS for hook in hooks))
 
     def test_same_input_gives_identical_text(self):
-        decision = _decision(ply=20, color="white", mover_loss_cp=480,
-                             header={"White": "Kasparov", "Black": "Kramnik"})
-        first = _narrate(decision=decision, ply=20, color="white",
-                         headers=decision.header)
-        second = _narrate(decision=decision, ply=20, color="white",
-                          headers=decision.header)
+        decision = _decision(
+            ply=20,
+            color="white",
+            mover_loss_cp=480,
+            header={"White": "Kasparov", "Black": "Kramnik"},
+        )
+        first = _narrate(decision=decision, ply=20, color="white", headers=decision.header)
+        second = _narrate(decision=decision, ply=20, color="white", headers=decision.header)
         self.assertEqual(first, second)
         self.assertEqual(first.info.hook, second.info.hook)
 
@@ -322,22 +337,39 @@ class ArrowTests(unittest.TestCase):
     def test_reveal_arrow_is_the_move_that_was_played(self):
         before, after, san = _ply_state(OPERA_GAME, 31)
         self.assertEqual(san, "Qb8+")
-        decision = _decision(ply=31, move_number=16, color="white", san="Qb8+",
-                             uci="b3b8", fen_before=before, fen_after=after,
-                             mover_loss_cp=865, material=True)
-        frame = _narrate(decision=decision, ply=31, color="white",
-                         fen_before=before, fen_after=after)
+        decision = _decision(
+            ply=31,
+            move_number=16,
+            color="white",
+            san="Qb8+",
+            uci="b3b8",
+            fen_before=before,
+            fen_after=after,
+            mover_loss_cp=865,
+            material=True,
+        )
+        frame = _narrate(
+            decision=decision, ply=31, color="white", fen_before=before, fen_after=after
+        )
         self.assertEqual(frame.arrow, ("b3", "b8"))
         self.assertEqual(frame.info.moved_san, "Qb8+")
         self.assertEqual(frame.accent, "bad")
 
     def test_arrow_is_recovered_from_the_fens_when_the_uci_is_unusable(self):
         before, after, _ = _ply_state(IMMORTAL_GAME, 43)
-        decision = _decision(ply=22, color="white", san="Qf6+", uci="nonsense",
-                             fen_before=before, fen_after=after, mover_loss_cp=955,
-                             material=True)
-        frame = _narrate(decision=decision, ply=22, color="white",
-                         fen_before=before, fen_after=after)
+        decision = _decision(
+            ply=22,
+            color="white",
+            san="Qf6+",
+            uci="nonsense",
+            fen_before=before,
+            fen_after=after,
+            mover_loss_cp=955,
+            material=True,
+        )
+        frame = _narrate(
+            decision=decision, ply=22, color="white", fen_before=before, fen_after=after
+        )
         self.assertEqual(frame.arrow, ("f3", "f6"))
         # The decision's SAN is preferred, so a bad uci cannot cost the caption.
         self.assertEqual(frame.info.moved_san, "Qf6+")
@@ -371,9 +403,15 @@ class PlayersTests(unittest.TestCase):
     def test_missing_or_unknown_headers_fall_back(self):
         fallback = narration.FALLBACK_PLAYERS
         self.assertEqual(fallback, "белые — чёрные")
-        for headers in (None, {}, {"White": "Kasparov"}, {"Black": "Kramnik"},
-                        {"White": "?", "Black": "???"}, {"White": "", "Black": "  "},
-                        {"White": "unknown", "Black": "n/a"}):
+        for headers in (
+            None,
+            {},
+            {"White": "Kasparov"},
+            {"Black": "Kramnik"},
+            {"White": "?", "Black": "???"},
+            {"White": "", "Black": "  "},
+            {"White": "unknown", "Black": "n/a"},
+        ):
             self.assertEqual(narration.players_line(headers), fallback, repr(headers))
 
     def test_headers_as_attributes_are_accepted(self):
@@ -429,30 +467,54 @@ class DetailTests(unittest.TestCase):
         # is wrong with the position, so the line is about the castling.
         before, after, san = _walk("e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "Rg1")
         self.assertEqual(san, "Rg1")
-        decision = _decision(ply=7, color="white", san="Rg1", uci="h1g1",
-                             fen_before=before, fen_after=after, mover_loss_cp=220,
-                             material=True)
-        frame = _narrate(decision=decision, ply=7, color="white",
-                         fen_before=before, fen_after=after)
+        decision = _decision(
+            ply=7,
+            color="white",
+            san="Rg1",
+            uci="h1g1",
+            fen_before=before,
+            fen_after=after,
+            mover_loss_cp=220,
+            material=True,
+        )
+        frame = _narrate(
+            decision=decision, ply=7, color="white", fen_before=before, fen_after=after
+        )
         self.assertEqual(frame.info.detail, "Ладья уже ходила — рокировки не будет")
 
     def test_castling_rights_kept_are_not_reported(self):
         before, after, _ = _ply_state(IMMORTAL_GAME, 2)
-        decision = _decision(ply=2, color="white", san="f4", uci="f2f4",
-                             fen_before=before, fen_after=after, mover_loss_cp=60)
-        frame = _narrate(decision=decision, ply=2, color="white",
-                         fen_before=before, fen_after=after)
+        decision = _decision(
+            ply=2,
+            color="white",
+            san="f4",
+            uci="f2f4",
+            fen_before=before,
+            fen_after=after,
+            mover_loss_cp=60,
+        )
+        frame = _narrate(
+            decision=decision, ply=2, color="white", fen_before=before, fen_after=after
+        )
         self.assertNotIn("рокировки", frame.info.detail)
 
     def test_a_sacrifice_is_never_called_a_blunder(self):
         # 22.Qf6+ hangs the queen and mates in two. The material path flags it as
         # a 955cp blunder; the narration proves the mate instead and says so.
         before, after, _ = _ply_state(IMMORTAL_GAME, 43)
-        decision = _decision(ply=43, color="white", san="Qf6+", uci="f3f6",
-                             fen_before=before, fen_after=after, mover_loss_cp=955,
-                             material=True)
-        frame = _narrate(decision=decision, ply=43, color="white",
-                         fen_before=before, fen_after=after)
+        decision = _decision(
+            ply=43,
+            color="white",
+            san="Qf6+",
+            uci="f3f6",
+            fen_before=before,
+            fen_after=after,
+            mover_loss_cp=955,
+            material=True,
+        )
+        frame = _narrate(
+            decision=decision, ply=43, color="white", fen_before=before, fen_after=after
+        )
         self.assertIn("мат", frame.info.hook.lower())
         self.assertIn("Жертва", frame.info.detail)
         self.assertNotIn("зевок", frame.info.hook.lower())
@@ -463,27 +525,44 @@ class DetailTests(unittest.TestCase):
         # sacrifice as easily as in a blunder, and the material path cannot tell
         # them apart, so the line states the position instead of judging the move.
         before, after, _ = _ply_state(OPERA_GAME, 19)
-        decision = _decision(ply=19, color="white", san="Nxb5", uci="c3b5",
-                             fen_before=before, fen_after=after, mover_loss_cp=210,
-                             material=True)
-        frame = _narrate(decision=decision, ply=19, color="white",
-                         fen_before=before, fen_after=after)
+        decision = _decision(
+            ply=19,
+            color="white",
+            san="Nxb5",
+            uci="c3b5",
+            fen_before=before,
+            fen_after=after,
+            mover_loss_cp=210,
+            material=True,
+        )
+        frame = _narrate(
+            decision=decision, ply=19, color="white", fen_before=before, fen_after=after
+        )
         self.assertIn("b5", frame.info.hook)
         self.assertNotIn("зевок", frame.info.hook.lower())
         self.assertNotIn("промах", frame.info.hook.lower())
 
     def test_engine_backed_decision_does_use_the_quality_words(self):
         before, after, _ = _ply_state(OPERA_GAME, 19)
-        decision = _decision(ply=19, color="white", san="Nxb5", uci="c3b5",
-                             fen_before=before, fen_after=after, mover_loss_cp=480,
-                             material=False)
-        frame = _narrate(decision=decision, ply=19, color="white",
-                         fen_before=before, fen_after=after)
+        decision = _decision(
+            ply=19,
+            color="white",
+            san="Nxb5",
+            uci="c3b5",
+            fen_before=before,
+            fen_after=after,
+            mover_loss_cp=480,
+            material=False,
+        )
+        frame = _narrate(
+            decision=decision, ply=19, color="white", fen_before=before, fen_after=after
+        )
         self.assertIn("зевок", frame.info.hook.lower())
 
     def test_mate_in_the_position_is_reported_for_the_side_to_move(self):
-        frame = _narrate(ply=1, fen_before=chess.STARTING_FEN,
-                         fen_after="6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1")
+        frame = _narrate(
+            ply=1, fen_before=chess.STARTING_FEN, fen_after="6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1"
+        )
         self.assertIn("мат", frame.info.detail.lower())
 
 
@@ -493,14 +572,28 @@ class BandTests(unittest.TestCase):
 
     def test_the_reveal_frame_fills_every_field(self):
         before, after, _ = _ply_state(IMMORTAL_GAME, 35)
-        decision = _decision(ply=35, color="white", san="Bd6", uci="f4d6",
-                             fen_before=before, fen_after=after,
-                             eval_before_cp=-180, eval_after_cp=-660,
-                             mover_loss_cp=480, material=False,
-                             header={"White": "Anderssen", "Black": "Kieseritzky"})
-        frame = _narrate(decision=decision, ply=35, color="white",
-                         fen_before=before, fen_after=after,
-                         total_plies=45, headers=decision.header)
+        decision = _decision(
+            ply=35,
+            color="white",
+            san="Bd6",
+            uci="f4d6",
+            fen_before=before,
+            fen_after=after,
+            eval_before_cp=-180,
+            eval_after_cp=-660,
+            mover_loss_cp=480,
+            material=False,
+            header={"White": "Anderssen", "Black": "Kieseritzky"},
+        )
+        frame = _narrate(
+            decision=decision,
+            ply=35,
+            color="white",
+            fen_before=before,
+            fen_after=after,
+            total_plies=45,
+            headers=decision.header,
+        )
         info = frame.info
         self.assertEqual(info.hook, "Зевок: ладья на a1 висит")
         self.assertTrue(info.detail)
@@ -512,12 +605,25 @@ class BandTests(unittest.TestCase):
 
     def test_a_skim_frame_fills_everything_but_the_evaluation(self):
         before, after, _ = _ply_state(IMMORTAL_GAME, 20)
-        decision = _decision(ply=43, color="white", san="Qf6+", uci="f3f6",
-                             fen_before=before, fen_after=after, mover_loss_cp=955,
-                             material=True)
-        frame = _narrate(decision=decision, ply=20, color="white",
-                         fen_before=before, fen_after=after, total_plies=45,
-                         headers={"White": "Anderssen", "Black": "Kieseritzky"})
+        decision = _decision(
+            ply=43,
+            color="white",
+            san="Qf6+",
+            uci="f3f6",
+            fen_before=before,
+            fen_after=after,
+            mover_loss_cp=955,
+            material=True,
+        )
+        frame = _narrate(
+            decision=decision,
+            ply=20,
+            color="white",
+            fen_before=before,
+            fen_after=after,
+            total_plies=45,
+            headers={"White": "Anderssen", "Black": "Kieseritzky"},
+        )
         info = frame.info
         for field in (info.hook, info.detail, info.progress, info.players, info.moved_san):
             self.assertTrue(field, f"{field!r} is empty")
@@ -542,9 +648,14 @@ class BandTests(unittest.TestCase):
     def test_narration_survives_without_python_chess(self):
         # python-chess is an optional dependency of this package. Without it the
         # position-based lines go blank, and the band still has to be fillable.
-        decision = _decision(ply=20, color="white", mover_loss_cp=480,
-                             eval_before_cp=30, eval_after_cp=-480,
-                             header={"White": "Kasparov", "Black": "Kramnik"})
+        decision = _decision(
+            ply=20,
+            color="white",
+            mover_loss_cp=480,
+            eval_before_cp=30,
+            eval_after_cp=-480,
+            header={"White": "Kasparov", "Black": "Kramnik"},
+        )
         original = narration._chess
         narration._chess = lambda: None  # type: ignore[assignment]
         try:

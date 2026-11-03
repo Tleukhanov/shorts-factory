@@ -1,4 +1,4 @@
-﻿"""Main pipeline runner — the orchestration brain.
+"""Main pipeline runner — the orchestration brain.
 
 Wires together every module into a single clean flow:
   Scout → Subtitles → Gemini → Download → Crop → Burn Subs → Output
@@ -205,9 +205,7 @@ def run(
                             windows_and_peaks_from_audio,
                         )
 
-                        log.info(
-                            "🎭 CLUTCH MODE: emotion — using caster-excitement detection."
-                        )
+                        log.info("🎭 CLUTCH MODE: emotion — using caster-excitement detection.")
                         window_pairs = windows_and_peaks_from_audio(
                             audio_path, settings.gameplay_scan_max_seconds, settings
                         )
@@ -225,16 +223,10 @@ def run(
                             "The audio may be silent or below the energy threshold."
                         )
                     # window_pairs are (ClipWindow, peak_second, peak_magnitude).
-                    window_info = [
-                        (w, p, m) for w, p, m in window_pairs
-                    ]
+                    window_info = [(w, p, m) for w, p, m in window_pairs]
                     energy_windows = [w for w, _, _ in window_info]
-                    peaks_by_start = {
-                        round(w.start, 2): p for w, p, _ in window_info
-                    }
-                    magnitude_by_start = {
-                        round(w.start, 2): m for w, _, m in window_info
-                    }
+                    peaks_by_start = {round(w.start, 2): p for w, p, _ in window_info}
+                    magnitude_by_start = {round(w.start, 2): m for w, _, m in window_info}
 
                     # De-duplicate near-adjacent windows so the final set has
                     # minimum temporal separation (avoids near-duplicate clips).
@@ -266,8 +258,7 @@ def run(
                     )
                     selected = ranked[: count - len(clips)]
                     gameplay_clips = [
-                        (ClipWindow(start=w.start, end=w.end), "center")
-                        for w in selected
+                        (ClipWindow(start=w.start, end=w.end), "center") for w in selected
                     ]
                     clips.extend(gameplay_clips)
 
@@ -280,9 +271,7 @@ def run(
                                 "start": round(w.start, 2),
                                 "end": round(w.end, 2),
                                 "peak": peaks_by_start.get(round(w.start, 2)),
-                                "peak_magnitude": magnitude_by_start.get(
-                                    round(w.start, 2)
-                                ),
+                                "peak_magnitude": magnitude_by_start.get(round(w.start, 2)),
                             }
                             for idx, w in enumerate(selected)
                         ],
@@ -305,9 +294,7 @@ def run(
                                     "start": w.start,
                                     "end": w.end,
                                     "peak": peaks_by_start.get(round(w.start, 2)),
-                                    "peak_magnitude": magnitude_by_start.get(
-                                        round(w.start, 2)
-                                    ),
+                                    "peak_magnitude": magnitude_by_start.get(round(w.start, 2)),
                                 }
                                 for idx, w in enumerate(ranked_all)
                             ],
@@ -348,9 +335,7 @@ def run(
                                 from shorts_clipper.highlight_detection.hook_judge import HookJudge
 
                                 _hook_judge = HookJudge(settings)
-                                window_text = " ".join(
-                                    seg.text for seg in best_local_window
-                                )[:600]
+                                window_text = " ".join(seg.text for seg in best_local_window)[:600]
                                 _verdict = _hook_judge.score(window_text)
                                 hook_score_val = _verdict.score
                                 hook_reason_val = _verdict.reason
@@ -371,7 +356,11 @@ def run(
 
                         log.info("Selecting optimal narrative")
                         winner_variant = next(
-                            (v for v in sim_result.variants if v.variant_id == sim_result.winner_id),
+                            (
+                                v
+                                for v in sim_result.variants
+                                if v.variant_id == sim_result.winner_id
+                            ),
                             sim_result.base_variant,
                         )
 
@@ -594,8 +583,7 @@ def run(
                         )
                     else:
                         center_seconds = (
-                            (window.start - buffered_start)
-                            + (window.end - buffered_start)
+                            (window.start - buffered_start) + (window.end - buffered_start)
                         ) / 2.0
                         final_window = cap_to_target(
                             final_window,
@@ -673,9 +661,9 @@ def run(
                 precision_segments = shifted_segments
 
                 # Deterministic per-clip seed for the visual-transform layer.
-                render_seed = zlib.crc32(
-                    f"{url}|{idx}|{round(window.start, 2)}".encode()
-                ) & 0xFFFFFFFF
+                render_seed = (
+                    zlib.crc32(f"{url}|{idx}|{round(window.start, 2)}".encode()) & 0xFFFFFFFF
+                )
 
                 vo_output_path = None
                 if getattr(settings, "vo_enabled", False) and not settings.gameplay_mode:
@@ -686,9 +674,7 @@ def run(
                             synthesize_voiceover,
                         )
 
-                        vo_text = build_voiceover_text(
-                            precision_segments, clip_duration=duration
-                        )
+                        vo_text = build_voiceover_text(precision_segments, clip_duration=duration)
                         if vo_text:
                             vo_output_path = synthesize_voiceover(
                                 vo_text,
@@ -697,9 +683,7 @@ def run(
                                 rate=settings.vo_rate,
                             )
                     except Exception as _vo_err:
-                        log.warning(
-                            "TTS voiceover failed, continuing without: %s", _vo_err
-                        )
+                        log.warning("TTS voiceover failed, continuing without: %s", _vo_err)
 
                 # ── Step 3: Vertical crop + Trim ──────────────────────────────
                 log.info("\n--- VERTICAL CROP & TRIM ---")
@@ -821,7 +805,8 @@ def run(
                     ad_card_kwargs = {
                         "ad_card_start": card_start,
                         "ad_card_duration": settings.affiliate_ad_duration_sec,
-                        "ad_card_text": settings.affiliate_cta_text or auto_cta_text(
+                        "ad_card_text": settings.affiliate_cta_text
+                        or auto_cta_text(
                             affiliate_partner,
                             settings.game_label,
                         ),
@@ -846,7 +831,9 @@ def run(
                     video_codec=settings.video_codec,
                     preset=settings.video_preset,
                     style_name=settings.subtitle_style,
-                    hook_banner_text=settings.hook_banner_text if settings.hook_banner_enabled else None,
+                    hook_banner_text=settings.hook_banner_text
+                    if settings.hook_banner_enabled
+                    else None,
                     caption_pop=settings.caption_scale_pop,
                     vo_output_path=vo_output_path,
                     **banner_kwargs,
@@ -869,7 +856,9 @@ def run(
                         video_codec=settings.video_codec,
                         preset=settings.video_preset,
                         style_name=settings.subtitle_style,
-                        hook_banner_text=settings.hook_banner_text if settings.hook_banner_enabled else None,
+                        hook_banner_text=settings.hook_banner_text
+                        if settings.hook_banner_enabled
+                        else None,
                         caption_pop=settings.caption_scale_pop,
                         vo_output_path=vo_output_path,
                         **banner_kwargs,
@@ -952,7 +941,9 @@ def run(
                     try:
                         partner_language = str(meta.get("language") or "en")
                         meta["description"] = build_affiliate_description(
-                            meta, affiliate_partner, partner_language,
+                            meta,
+                            affiliate_partner,
+                            partner_language,
                             clip_name=current_output_path.stem,
                         )
                         if affiliate_partner.tag and affiliate_partner.tag not in meta["tags"]:
@@ -978,9 +969,7 @@ def run(
 
                         credit = track_attribution(track)
                         if credit:
-                            meta["description"] = (
-                                f"{meta['description']}\n\nMusic by {credit}."
-                            )
+                            meta["description"] = f"{meta['description']}\n\nMusic by {credit}."
                             log.info("Appended music attribution for %s", track.name)
                     except Exception as attr_err:
                         log.warning(
@@ -1459,9 +1448,7 @@ def run_batch(
             url = normalize_source(raw)
         except ValueError as exc:
             line = f"[source {index}] {raw!r} is not a valid URL or video ID: {exc}"
-            results.append(
-                BatchSourceResult(index=index, source=raw, ok=False, error=str(exc))
-            )
+            results.append(BatchSourceResult(index=index, source=raw, ok=False, error=str(exc)))
             log.error("❌ BATCH %s", line)
             if not continue_on_error:
                 raise BatchRunError(line) from exc
@@ -1483,9 +1470,7 @@ def run_batch(
             _record_batch_metrics(settings, url, outputs)
         except Exception as exc:
             line = f"[source {index}] {url} FAILED: {exc}"
-            results.append(
-                BatchSourceResult(index=index, source=url, ok=False, error=str(exc))
-            )
+            results.append(BatchSourceResult(index=index, source=url, ok=False, error=str(exc)))
             log.error("❌ BATCH %s", line)
             if not continue_on_error:
                 raise BatchRunError(line) from exc

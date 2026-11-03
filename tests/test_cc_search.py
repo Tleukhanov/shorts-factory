@@ -46,7 +46,7 @@ class SearchCCVideosTests(unittest.TestCase):
 
     @mock.patch("shorts_clipper.downloader.yt_dlp.subprocess.run")
     def test_ignores_non_json_lines(self, fake_run):
-        proc = self._run_result(stdout="some yt-dlp progress\n{\"id\":\"v2\",\"title\":\"T\"}\n")
+        proc = self._run_result(stdout='some yt-dlp progress\n{"id":"v2","title":"T"}\n')
         fake_run.return_value = proc
         results = search_cc_videos("x", max_results=3)
         self.assertEqual(len(results), 1)

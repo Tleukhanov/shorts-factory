@@ -37,12 +37,19 @@ def _build_parser(metrics_path: str) -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description="Collect view/like/comment stats for produced clips.",
     )
-    p.add_argument("--db", default=metrics_path,
-                   help="Metrics sqlite path (default from SHORTS_METRICS_PATH).")
-    p.add_argument("--min-age-min", type=int, default=60, dest="min_age_min",
-                   help="Minimum age in minutes before collecting stats (default 60).")
-    p.add_argument("--limit", type=int, default=50,
-                   help="Max records to process per run (default 50).")
+    p.add_argument(
+        "--db", default=metrics_path, help="Metrics sqlite path (default from SHORTS_METRICS_PATH)."
+    )
+    p.add_argument(
+        "--min-age-min",
+        type=int,
+        default=60,
+        dest="min_age_min",
+        help="Minimum age in minutes before collecting stats (default 60).",
+    )
+    p.add_argument(
+        "--limit", type=int, default=50, help="Max records to process per run (default 50)."
+    )
     return p
 
 

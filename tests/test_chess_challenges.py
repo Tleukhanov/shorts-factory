@@ -184,8 +184,14 @@ class ChallengePlanTests(unittest.TestCase):
     @unittest.skipUnless(HAVE_CHESS, "python-chess not installed")
     def test_bad_position_yields_empty_plan(self):
         broken = challenges.Challenge(
-            fen="not a fen", move_number=1, ply=0, color="white",
-            best_uci="e2e4", best_san="e4", gap_cp=500, best_cp=500,
+            fen="not a fen",
+            move_number=1,
+            ply=0,
+            color="white",
+            best_uci="e2e4",
+            best_san="e4",
+            gap_cp=500,
+            best_cp=500,
             runner_up_san="d2d4",
         )
         plan = clip.plan_for_challenge(broken)

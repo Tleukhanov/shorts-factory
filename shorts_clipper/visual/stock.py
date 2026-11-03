@@ -234,9 +234,7 @@ def fetch_pexels_background(
     niche_dir: str | Path = "data/niches",
 ) -> Path | None:
     """Return a seed-deterministic Pexels video for *niche* (or ``None``)."""
-    pool = ensure_pexels_cache(
-        stock_dir, niche, api_key, limit=limit, niche_dir=niche_dir
-    )
+    pool = ensure_pexels_cache(stock_dir, niche, api_key, limit=limit, niche_dir=niche_dir)
     if not pool:
         return None
     return random.Random(seed).choice(pool)
@@ -867,7 +865,9 @@ def _download_pexels_videos(query: str, cache_dir: Path, api_key: str, limit: in
                         fh.write(chunk)
             if out_path.stat().st_size > 100_000:
                 saved.append(out_path)
-                log.info("Pexels: cached %s (%.1f MB)", out_path.name, out_path.stat().st_size / 1e6)
+                log.info(
+                    "Pexels: cached %s (%.1f MB)", out_path.name, out_path.stat().st_size / 1e6
+                )
         except Exception as exc:
             log.error("Pexels download failed for %s: %s", link, exc)
             try:
@@ -896,8 +896,10 @@ def load_stock_script(
     a sunrise in the forest.  With no visual information the draw is exactly
     the previous unfiltered one.
     """
-    tags = frozenset(background_tags) if background_tags is not None else (
-        stock_tags.background_tags(background) if background is not None else frozenset()
+    tags = (
+        frozenset(background_tags)
+        if background_tags is not None
+        else (stock_tags.background_tags(background) if background is not None else frozenset())
     )
 
     if script_path:
@@ -913,7 +915,9 @@ def load_stock_script(
 
     lines = niche_script_lines(niche, niche_dir)
     if lines:
-        return random.Random(seed).choice(_tagged(lines, tags, f"niche profile {niche or 'default'}"))
+        return random.Random(seed).choice(
+            _tagged(lines, tags, f"niche profile {niche or 'default'}")
+        )
 
     return random.Random(seed).choice(_tagged(list(_DEFAULT_SCRIPTS), tags, "built-in bank"))
 
@@ -1191,8 +1195,7 @@ def render_procedural_background(
 
     vf = (
         f"gradients=size={_TARGET_W}x{_TARGET_H}:speed=0.02:c0={c0}:c1={c1}:c2={c2}:x0=0:y0=0:"
-        f"x1={_TARGET_W}:y1={_TARGET_H}"
-        + ",format=yuv420p"
+        f"x1={_TARGET_W}:y1={_TARGET_H}" + ",format=yuv420p"
     )
     cmd = [
         ffmpeg_path(),

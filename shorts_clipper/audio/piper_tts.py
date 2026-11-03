@@ -567,16 +567,13 @@ def synthesize(
         return None, []
 
     if not piper_installed():
-        log.warning(
-            "Piper TTS is not installed (pip install piper-tts) — falling back to edge-tts"
-        )
+        log.warning("Piper TTS is not installed (pip install piper-tts) — falling back to edge-tts")
         return None, []
 
     model_name = resolve_model_name(text, voice)
     if not ensure_model(model_name):
         log.warning(
-            "Piper voice %r is unavailable (no cache, download failed) — "
-            "falling back to edge-tts",
+            "Piper voice %r is unavailable (no cache, download failed) — falling back to edge-tts",
             model_name,
         )
         return None, []

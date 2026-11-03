@@ -30,50 +30,105 @@ def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description="Autopilot factory: discover VODs, clip them, optionally publish.",
     )
-    p.add_argument("--query", default=None,
-                   help="Search query for VOD discovery "
-                        "(default: '<SHORTS_GAME_NAME> gameplay', e.g. 'cs2 gameplay').")
-    p.add_argument("--providers", default="youtube",
-                   help="Comma-separated provider names (default: 'youtube').")
-    p.add_argument("--count", type=int, default=3, dest="count",
-                   help="Number of clips per video (default: 3).")
-    p.add_argument("--max-videos", type=int, default=3, dest="max_videos",
-                   help="Max VODs to discover per round (default: 3). 0 = no-op.")
-    p.add_argument("--loop-interval", type=float, default=0, dest="loop_interval",
-                   metavar="MINUTES",
-                   help="Minutes between rounds (default: 0 = run once and exit). "
-                        ">0 = infinite loop. Ignored when --schedule-interval-min is set.")
-    p.add_argument("--publish", action="store_true",
-                   help="Publish each clip with public visibility after rendering.")
-    p.add_argument("--gameplay", action="store_true",
-                   help="Enable hype/gameplay mode (peak-energy clip selection).")
-    p.add_argument("--bgm", choices=["off", "always", "hybrid"], default=None,
-                   help="Background music mode.")
-    p.add_argument("--clutch", choices=["energy", "emotion"], default=None,
-                   help="Gameplay clutch window mode.")
-    p.add_argument("--clips-seconds", type=float, dest="clip_seconds", default=None,
-                   help="Target clip length in seconds.")
-    p.add_argument("--aspect", choices=["vertical", "wide", "both"], default=None,
-                   help="Output aspect ratio.")
-    p.add_argument("--channel", default=None,
-                   help="Channel profile name (sets SHORTS_CHANNEL for multi-channel env overlay).")
-    p.add_argument("--niche", default=None,
-                   help="Stock visual niche profile (e.g. self-growth, philosophy, money, relationships); "
-                        "defaults to SHORTS_NICHE env.")
-    p.add_argument("--schedule-interval-min", type=int, default=0, dest="schedule_interval_min",
-                   metavar="MINUTES",
-                   help="Minutes between scheduled factory rounds (default: 0 = run once "
-                        "and exit). >0 = infinite loop; overrides --loop-interval.")
-    p.add_argument("--daily-cap", type=int, default=None, dest="daily_cap",
-                   help="Max clips to publish per channel per day "
-                        "(default: SHORTS_FACTORY_DAILY_CAP env or 6).")
-    p.add_argument("--title-variant", type=int, default=-1, dest="title_variant",
-                   help="0-based title candidate index for A/B testing "
-                        "(sets SHORTS_TITLE_VARIANT; default: -1 = Gemini's pick).")
-    p.add_argument("--visual-mode", dest="visual_mode",
-                   choices=["clip", "stock"],
-                   default=os.environ.get("SHORTS_VISUAL_MODE", "clip"),
-                   help="Visual mode (default: SHORTS_VISUAL_MODE env or clip).")
+    p.add_argument(
+        "--query",
+        default=None,
+        help="Search query for VOD discovery "
+        "(default: '<SHORTS_GAME_NAME> gameplay', e.g. 'cs2 gameplay').",
+    )
+    p.add_argument(
+        "--providers",
+        default="youtube",
+        help="Comma-separated provider names (default: 'youtube').",
+    )
+    p.add_argument(
+        "--count", type=int, default=3, dest="count", help="Number of clips per video (default: 3)."
+    )
+    p.add_argument(
+        "--max-videos",
+        type=int,
+        default=3,
+        dest="max_videos",
+        help="Max VODs to discover per round (default: 3). 0 = no-op.",
+    )
+    p.add_argument(
+        "--loop-interval",
+        type=float,
+        default=0,
+        dest="loop_interval",
+        metavar="MINUTES",
+        help="Minutes between rounds (default: 0 = run once and exit). "
+        ">0 = infinite loop. Ignored when --schedule-interval-min is set.",
+    )
+    p.add_argument(
+        "--publish",
+        action="store_true",
+        help="Publish each clip with public visibility after rendering.",
+    )
+    p.add_argument(
+        "--gameplay",
+        action="store_true",
+        help="Enable hype/gameplay mode (peak-energy clip selection).",
+    )
+    p.add_argument(
+        "--bgm", choices=["off", "always", "hybrid"], default=None, help="Background music mode."
+    )
+    p.add_argument(
+        "--clutch", choices=["energy", "emotion"], default=None, help="Gameplay clutch window mode."
+    )
+    p.add_argument(
+        "--clips-seconds",
+        type=float,
+        dest="clip_seconds",
+        default=None,
+        help="Target clip length in seconds.",
+    )
+    p.add_argument(
+        "--aspect", choices=["vertical", "wide", "both"], default=None, help="Output aspect ratio."
+    )
+    p.add_argument(
+        "--channel",
+        default=None,
+        help="Channel profile name (sets SHORTS_CHANNEL for multi-channel env overlay).",
+    )
+    p.add_argument(
+        "--niche",
+        default=None,
+        help="Stock visual niche profile (e.g. self-growth, philosophy, money, relationships); "
+        "defaults to SHORTS_NICHE env.",
+    )
+    p.add_argument(
+        "--schedule-interval-min",
+        type=int,
+        default=0,
+        dest="schedule_interval_min",
+        metavar="MINUTES",
+        help="Minutes between scheduled factory rounds (default: 0 = run once "
+        "and exit). >0 = infinite loop; overrides --loop-interval.",
+    )
+    p.add_argument(
+        "--daily-cap",
+        type=int,
+        default=None,
+        dest="daily_cap",
+        help="Max clips to publish per channel per day "
+        "(default: SHORTS_FACTORY_DAILY_CAP env or 6).",
+    )
+    p.add_argument(
+        "--title-variant",
+        type=int,
+        default=-1,
+        dest="title_variant",
+        help="0-based title candidate index for A/B testing "
+        "(sets SHORTS_TITLE_VARIANT; default: -1 = Gemini's pick).",
+    )
+    p.add_argument(
+        "--visual-mode",
+        dest="visual_mode",
+        choices=["clip", "stock"],
+        default=os.environ.get("SHORTS_VISUAL_MODE", "clip"),
+        help="Visual mode (default: SHORTS_VISUAL_MODE env or clip).",
+    )
     return p
 
 
@@ -156,12 +211,13 @@ def _run_stock_round(
             settings.factory_publish_hour_start,
             settings.factory_publish_hour_end,
         ):
-            print(f"PUBLISH WINDOW CLOSED (hour={datetime.now().hour}) — "
-                  "skipping publish for this video (recording as unpublished)")
+            print(
+                f"PUBLISH WINDOW CLOSED (hour={datetime.now().hour}) — "
+                "skipping publish for this video (recording as unpublished)"
+            )
             can_publish = False
         if publish and can_publish and not should_publish_today(store, channel, daily_cap):
-            print("DAILY CAP REACHED — skipping publish for this video "
-                  "(recording as unpublished)")
+            print("DAILY CAP REACHED — skipping publish for this video (recording as unpublished)")
             can_publish = False
         stock_id = f"stock:{niche_value}:{idx}"
         print(f"  [{idx}/{n_discovered}] {stock_id}")
@@ -242,12 +298,13 @@ def _run_round(
             settings.factory_publish_hour_start,
             settings.factory_publish_hour_end,
         ):
-            print(f"PUBLISH WINDOW CLOSED (hour={datetime.now().hour}) — "
-                  "skipping publish for this video (recording as unpublished)")
+            print(
+                f"PUBLISH WINDOW CLOSED (hour={datetime.now().hour}) — "
+                "skipping publish for this video (recording as unpublished)"
+            )
             can_publish = False
         if publish and can_publish and not should_publish_today(store, channel, daily_cap):
-            print("DAILY CAP REACHED — skipping publish for this video "
-                  "(recording as unpublished)")
+            print("DAILY CAP REACHED — skipping publish for this video (recording as unpublished)")
             can_publish = False
 
         print(f"  [{idx}/{n_discovered}] {title}")
@@ -327,7 +384,9 @@ def main(argv: list[str] | None = None) -> int:
 
     # Scheduling: an explicit --schedule-interval-min wins over the older
     # --loop-interval; when both are 0 the factory runs exactly once.
-    interval_min = args.schedule_interval_min if args.schedule_interval_min > 0 else args.loop_interval
+    interval_min = (
+        args.schedule_interval_min if args.schedule_interval_min > 0 else args.loop_interval
+    )
 
     round_num = 0
     try:

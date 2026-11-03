@@ -29,18 +29,14 @@ def _make_vertical_mp4(path: Path) -> Path:
     astream.layout = "mono"
 
     for _ in range(4):
-        frame = av.VideoFrame.from_ndarray(
-            np.zeros((192, 108, 3), dtype=np.uint8), format="rgb24"
-        )
+        frame = av.VideoFrame.from_ndarray(np.zeros((192, 108, 3), dtype=np.uint8), format="rgb24")
         for packet in vstream.encode(frame):
             container.mux(packet)
 
     for _ in range(4):
         # 0.5s of silent audio
         samples = np.zeros(4000, dtype=np.int16)
-        aframe = av.AudioFrame.from_ndarray(
-            samples.reshape(1, -1), format="s16", layout="mono"
-        )
+        aframe = av.AudioFrame.from_ndarray(samples.reshape(1, -1), format="s16", layout="mono")
         aframe.sample_rate = 8000
         for packet in astream.encode(aframe):
             container.mux(packet)
@@ -61,16 +57,14 @@ SEGMENTS = [
 
 class AutoCtaTextTests(unittest.TestCase):
     def test_uses_partner_name(self):
-        partner = AffiliatePartner(
-            id="p", name="SkinFarm", link_en="https://x/en"
-        )
+        partner = AffiliatePartner(id="p", name="SkinFarm", link_en="https://x/en")
         self.assertIn("SkinFarm", auto_cta_text(partner, "Counter-Strike 2"))
 
     def test_matches_expected_default(self):
-        partner = AffiliatePartner(
-            id="p", name="FanOdd", link_en="https://x/en"
+        partner = AffiliatePartner(id="p", name="FanOdd", link_en="https://x/en")
+        self.assertEqual(
+            auto_cta_text(partner, "Valorant"), "FanOdd — скины Valorant, ссылка в описании"
         )
-        self.assertEqual(auto_cta_text(partner, "Valorant"), "FanOdd — скины Valorant, ссылка в описании")
 
 
 class SettingsParseTests(unittest.TestCase):
@@ -104,9 +98,7 @@ class SettingsParseTests(unittest.TestCase):
     def test_invalid_fraction_clamped_to_default(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             env_path = Path(temp_dir) / ".env"
-            env_path.write_text(
-                "SHORTS_AFFILIATE_AD_START_FRACTION=9.9\n", encoding="utf-8"
-            )
+            env_path.write_text("SHORTS_AFFILIATE_AD_START_FRACTION=9.9\n", encoding="utf-8")
             settings = Settings.from_env(env_path)
             self.assertEqual(settings.affiliate_ad_start_fraction, 0.45)
 
@@ -134,9 +126,11 @@ class BurnSubtitlesAdCardTests(unittest.TestCase):
     def test_no_ad_params_identical_to_baseline(self):
         base_cmd = self._run()
         other_cmd = self._run(ad_card_text=None, ad_card_image=None)
+
         # Both commands use unique temp dirs; normalize those paths before comparing
         def _norm(cmd):
             import re
+
             return [re.sub(r"ass_[^/]+/subs\.ass", "ass_TMP/subs.ass", c) for c in cmd]
 
         self.assertEqual(_norm(base_cmd), _norm(other_cmd))

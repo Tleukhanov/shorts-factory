@@ -162,8 +162,7 @@ class StockVisualTests(unittest.TestCase):
             new_seg = replace(
                 new_seg,
                 words=[
-                    replace(w, start=w.start + shift, end=w.end + shift)
-                    for w in (seg.words or [])
+                    replace(w, start=w.start + shift, end=w.end + shift) for w in (seg.words or [])
                 ],
             )
             shifted.append(new_seg)
@@ -180,21 +179,15 @@ class StockVisualTests(unittest.TestCase):
             niche_dir = Path(d) / "niches"
             money_dir = niche_dir / "money"
             money_dir.mkdir(parents=True)
-            (money_dir / "pexels_query.txt").write_text(
-                "city skyline night\n", encoding="utf-8"
-            )
-            self.assertEqual(
-                stock_visual.niche_query("money", niche_dir), "city skyline night"
-            )
+            (money_dir / "pexels_query.txt").write_text("city skyline night\n", encoding="utf-8")
+            self.assertEqual(stock_visual.niche_query("money", niche_dir), "city skyline night")
 
     def test_niche_query_falls_back_to_dict(self):
         self.assertEqual(
             stock_visual.niche_query("money", "does/not/exist"),
             "city skyscraper business night",
         )
-        self.assertEqual(
-            stock_visual.niche_query("nope", "does/not/exist"), "morning sunrise calm"
-        )
+        self.assertEqual(stock_visual.niche_query("nope", "does/not/exist"), "morning sunrise calm")
 
     def test_niche_script_profile_beats_builtin(self):
         import tempfile
@@ -219,9 +212,7 @@ class StockVisualTests(unittest.TestCase):
             niche_dir = Path(d) / "niches"
             money_dir = niche_dir / "money"
             money_dir.mkdir(parents=True)
-            (money_dir / "scripts.txt").write_text(
-                "Из профиля.\n", encoding="utf-8"
-            )
+            (money_dir / "scripts.txt").write_text("Из профиля.\n", encoding="utf-8")
             script_path = Path(d) / "override.txt"
             script_path.write_text("Из явного пути.\n", encoding="utf-8")
             picked = stock_visual.load_stock_script(
@@ -295,9 +286,7 @@ class StockVisualTests(unittest.TestCase):
         opener, *grid = flashes
         self.assertAlmostEqual(opener["start"], stock_visual._EDIT_FLASH_OPEN_OFFSET, places=3)
         for flash in grid:
-            self.assertAlmostEqual(
-                flash["start"], round(flash["start"] / bar) * bar, places=3
-            )
+            self.assertAlmostEqual(flash["start"], round(flash["start"] / bar) * bar, places=3)
         texts = [f["text"] for f in flashes]
         self.assertFalse(
             any(texts[i] == texts[i + 1] for i in range(len(texts) - 1)),
@@ -375,7 +364,9 @@ class StockVisualTests(unittest.TestCase):
         seg = 0.909
         offsets = [stock_visual._source_offset(12.0, 0, k, seg) for k in range(8)]
         self.assertEqual(offsets, [stock_visual._source_offset(12.0, 0, k, seg) for k in range(8)])
-        self.assertNotEqual(offsets, [stock_visual._source_offset(12.0, 1, k, seg) for k in range(8)])
+        self.assertNotEqual(
+            offsets, [stock_visual._source_offset(12.0, 1, k, seg) for k in range(8)]
+        )
         self.assertTrue(all(stock_visual._EDIT_MIN_OFFSET <= o for o in offsets))
         self.assertTrue(all(o + seg <= 12.0 for o in offsets))
         self.assertGreater(len(set(offsets)), 4)

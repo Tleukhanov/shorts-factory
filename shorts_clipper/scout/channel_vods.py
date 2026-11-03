@@ -87,7 +87,9 @@ def _fetch_channel_uploads(channel_uri: str, limit: int) -> list[dict]:
         ]
     )
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=_PLAYLIST_TIMEOUT_SECONDS)
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=_PLAYLIST_TIMEOUT_SECONDS
+        )
     except subprocess.TimeoutExpired:
         log.warning("Channel VOD listing timed out for %s", channel_uri)
         return []

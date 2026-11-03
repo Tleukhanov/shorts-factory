@@ -129,9 +129,7 @@ def _avg_score(
     return round(statistics.mean(values), 4) if values else None
 
 
-def _grade(
-    publish_rate: float | None, engagement: float | None
-) -> tuple[str, float | None, str]:
+def _grade(publish_rate: float | None, engagement: float | None) -> tuple[str, float | None, str]:
     """Map (publish_rate, engagement) to a retention grade + score + source."""
     if publish_rate is not None and engagement is not None:
         score: float | None = publish_rate * engagement

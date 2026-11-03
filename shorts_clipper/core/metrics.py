@@ -102,9 +102,7 @@ class MetricsStore:
         """
         self._conn.execute(_SCHEMA)
         self._conn.execute(_AFFILIATE_EVENTS_SCHEMA)
-        existing = {
-            r["name"] for r in self._conn.execute("PRAGMA table_info(clips)").fetchall()
-        }
+        existing = {r["name"] for r in self._conn.execute("PRAGMA table_info(clips)").fetchall()}
         for column in ("source_channel", "platform", "platform_id", "short_url"):
             if column not in existing:
                 self._conn.execute(f"ALTER TABLE clips ADD COLUMN {column} TEXT")
@@ -144,8 +142,7 @@ class MetricsStore:
     def mark_published(self, video_id: str, publish_ts: str | None = None) -> None:
         """Mark *video_id* as published, optionally backdating its publish_ts."""
         self._conn.execute(
-            "UPDATE clips SET published=1, publish_ts=COALESCE(?, publish_ts) "
-            "WHERE video_id=?",
+            "UPDATE clips SET published=1, publish_ts=COALESCE(?, publish_ts) WHERE video_id=?",
             (publish_ts, video_id),
         )
         self._conn.commit()

@@ -51,10 +51,14 @@ def _plan(shake=(), after: float = 0.6) -> clip.ChessClipPlan:
     return clip.ChessClipPlan(
         frames=[
             FrameSpec(fen=FENS[0], top_text="Ход 7… Bg4", bottom_text="смотри до хода"),
-            FrameSpec(fen=FENS[1], top_text="Ход 7… Bg4", bottom_text="слон встал под бой",
-                      accent="bad", arrow=("c8", "g4")),
-            FrameSpec(fen=FENS[2], top_text="Ход 7… Bg4", bottom_text="теперь кон",
-                      accent="bad"),
+            FrameSpec(
+                fen=FENS[1],
+                top_text="Ход 7… Bg4",
+                bottom_text="слон встал под бой",
+                accent="bad",
+                arrow=("c8", "g4"),
+            ),
+            FrameSpec(fen=FENS[2], top_text="Ход 7… Bg4", bottom_text="теперь кон", accent="bad"),
         ],
         before_seconds=0.6,
         move_seconds=0.6,
@@ -73,7 +77,9 @@ class ShakePlanTests(unittest.TestCase):
 
     def test_default_duration_is_unchanged(self):
         self.assertAlmostEqual(
-            clip.ChessClipPlan(frames=[FrameSpec(fen=FENS[0], top_text="", bottom_text="")]).duration,
+            clip.ChessClipPlan(
+                frames=[FrameSpec(fen=FENS[0], top_text="", bottom_text="")]
+            ).duration,
             clip.HOLD_BEFORE + clip.HOLD_MOVE + clip.HOLD_AFTER,
         )
 
@@ -106,7 +112,8 @@ class ShakePlanTests(unittest.TestCase):
                 break
         self.assertIsNotNone(settled, "the shake never decays below a pixel")
         self.assertLess(
-            settled, 0.5,
+            settled,
+            0.5,
             f"the shake still moves at {settled:.2f}s, which is a vibration, not an impact",
         )
 
@@ -124,8 +131,9 @@ class ShakePlanTests(unittest.TestCase):
         from shorts_clipper.chess.board import render_frame
 
         with tempfile.TemporaryDirectory() as tmp:
-            png = render_frame(FrameSpec(fen=FENS[0], top_text="x", bottom_text="y"),
-                               Path(tmp) / "f.png")
+            png = render_frame(
+                FrameSpec(fen=FENS[0], top_text="x", bottom_text="y"), Path(tmp) / "f.png"
+            )
             colour = clip._shake_pad_colour(png)
         self.assertRegex(colour, r"^0x[0-9a-f]{6}$")
         self.assertEqual(len(colour), 8)
@@ -141,7 +149,8 @@ class ShakeRenderTests(unittest.TestCase):
             self.assertIsNotNone(plain, "unshaken render came back None")
             self.assertIsNotNone(shaken, "shaken render came back None -- the filter was rejected")
             self.assertNotEqual(
-                plain.read_bytes(), shaken.read_bytes(),
+                plain.read_bytes(),
+                shaken.read_bytes(),
                 "the shake produced identical bytes, so the expression is a no-op",
             )
 
@@ -156,21 +165,28 @@ class ShakeRenderTests(unittest.TestCase):
         def probe(path):
             info = subprocess.run(
                 [ffmpeg_path(), "-hide_banner", "-i", str(path)],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True,
+                text=True,
+                timeout=60,
             )
             duration = next(
-                (line.split("Duration:")[1].split(",")[0].strip()
-                 for line in info.stderr.splitlines() if "Duration:" in line),
+                (
+                    line.split("Duration:")[1].split(",")[0].strip()
+                    for line in info.stderr.splitlines()
+                    if "Duration:" in line
+                ),
                 None,
             )
             decoded = subprocess.run(
-                [ffmpeg_path(), "-hide_banner", "-i", str(path), "-map", "0:v",
-                 "-f", "null", "-"],
-                capture_output=True, text=True, timeout=300,
+                [ffmpeg_path(), "-hide_banner", "-i", str(path), "-map", "0:v", "-f", "null", "-"],
+                capture_output=True,
+                text=True,
+                timeout=300,
             )
             counts = [
                 int(line.split("frame=")[1].split()[0])
-                for line in decoded.stderr.splitlines() if line.startswith("frame=")
+                for line in decoded.stderr.splitlines()
+                if line.startswith("frame=")
             ]
             return duration, counts[-1] if counts else 0, info.stderr
 
@@ -191,7 +207,8 @@ class ShakeRenderTests(unittest.TestCase):
             self.assertGreater(plain_frames, 0)
             self.assertEqual(plain_frames, shaken_frames, "the shake changed the clip length")
             self.assertLessEqual(
-                abs(_seconds(plain_dur) - _seconds(shaken_dur)), 0.5,
+                abs(_seconds(plain_dur) - _seconds(shaken_dur)),
+                0.5,
                 f"container duration moved: {plain_dur} -> {shaken_dur}",
             )
             for label, err in (("plain", plain_err), ("shaken", shaken_err)):
@@ -208,18 +225,35 @@ class ShakeRenderTests(unittest.TestCase):
         def frames(path, out):
             out.mkdir(parents=True, exist_ok=True)
             subprocess.run(
-                [ffmpeg_path(), "-y", "-v", "error", "-i", str(path), "-vsync", "0",
-                 str(out / "%05d.png")],
-                check=True, timeout=300, capture_output=True,
+                [
+                    ffmpeg_path(),
+                    "-y",
+                    "-v",
+                    "error",
+                    "-i",
+                    str(path),
+                    "-vsync",
+                    "0",
+                    str(out / "%05d.png"),
+                ],
+                check=True,
+                timeout=300,
+                capture_output=True,
             )
-            return [np.asarray(PIL.Image.open(p).convert("L"), dtype=np.float32)
-                    for p in sorted(out.glob("*.png"))]
+            return [
+                np.asarray(PIL.Image.open(p).convert("L"), dtype=np.float32)
+                for p in sorted(out.glob("*.png"))
+            ]
 
         def shift(a, b, reach):
             best = None
             for dy in range(-reach, reach + 1):
                 for dx in range(-reach, reach + 1):
-                    err = float(np.abs(b[400:1500, 240:840] - a[400 - dy:1500 - dy, 240 - dx:840 - dx]).mean())
+                    err = float(
+                        np.abs(
+                            b[400:1500, 240:840] - a[400 - dy : 1500 - dy, 240 - dx : 840 - dx]
+                        ).mean()
+                    )
                     if best is None or err < best[0]:
                         best = (err, dx, dy)
             return best
@@ -240,18 +274,21 @@ class ShakeRenderTests(unittest.TestCase):
             # moved frame is the still frame at the matching integer offset.
             first = shift(a[2 * per_beat], b[2 * per_beat], clip.SHAKE_PX + 1)
             self.assertGreater(
-                max(abs(first[1]), abs(first[2])), 0,
+                max(abs(first[1]), abs(first[2])),
+                0,
                 "the first frame of the shaken beat did not move at all",
             )
             self.assertLessEqual(
-                max(abs(first[1]), abs(first[2])), clip.SHAKE_PX,
+                max(abs(first[1]), abs(first[2])),
+                clip.SHAKE_PX,
                 "the shake exceeded the amplitude it is supposed to have",
             )
 
             # ... and it has to be back to zero well before the hold is over.
             last = 2 * per_beat + per_beat - 1
             self.assertEqual(
-                shift(a[last], b[last], clip.SHAKE_PX + 1)[1:], (0, 0),
+                shift(a[last], b[last], clip.SHAKE_PX + 1)[1:],
+                (0, 0),
                 "the shake was still running at the end of the hold",
             )
 
@@ -260,7 +297,8 @@ class ShakeRenderTests(unittest.TestCase):
                 lo, hi = beat * per_beat, (beat + 1) * per_beat
                 for n in range(lo, hi):
                     self.assertEqual(
-                        float(np.abs(a[n] - b[n]).max()), 0.0,
+                        float(np.abs(a[n] - b[n]).max()),
+                        0.0,
                         f"beat {beat} frame {n} moved although it was not named for a shake",
                     )
 

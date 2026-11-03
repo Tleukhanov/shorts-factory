@@ -788,18 +788,19 @@ def download_stockfish(
     handle, tmp_name = tempfile.mkstemp(dir=root, prefix=".download-", suffix=".part")
     archive = Path(tmp_name)
     try:
-        with os.fdopen(handle, "wb") as out, urllib.request.urlopen(  # noqa: S310
-            urllib.request.Request(url, headers={"User-Agent": USER_AGENT}),
-            timeout=timeout,
-        ) as response:
+        with (
+            os.fdopen(handle, "wb") as out,
+            urllib.request.urlopen(  # noqa: S310
+                urllib.request.Request(url, headers={"User-Agent": USER_AGENT}),
+                timeout=timeout,
+            ) as response,
+        ):
             shutil.copyfileobj(response, out, length=1 << 20)
         if isinstance(digest, str) and digest.startswith("sha256:"):
             expected = digest.split(":", 1)[1].strip().lower()
             actual = _sha256(archive)
             if actual != expected:
-                raise ValueError(
-                    f"checksum mismatch for {url}: expected {expected}, got {actual}"
-                )
+                raise ValueError(f"checksum mismatch for {url}: expected {expected}, got {actual}")
         installed = install_archive(archive, str(tag), root)
     finally:
         with contextlib.suppress(OSError):

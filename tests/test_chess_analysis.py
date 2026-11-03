@@ -192,6 +192,7 @@ class BoardRenderTests(unittest.TestCase):
             self.assertEqual(img.size, (1080, 1920))
             colors = {c for _, c in img.convert("RGB").getcolors(maxcolors=200000)}
             from shorts_clipper.chess import board as _b
+
             self.assertIn(_b.LIGHT_SQUARE, colors, "light squares missing")
             self.assertIn(_b.DARK_SQUARE, colors, "dark squares missing")
             from shorts_clipper.chess import board as _b2

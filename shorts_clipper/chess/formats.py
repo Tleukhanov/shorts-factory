@@ -71,8 +71,14 @@ _OPENINGS: tuple[tuple[tuple[str, ...], str], ...] = (
 )
 
 _PIECE_RU = {
-    "Q": "ферзь", "R": "ладья", "B": "слон", "N": "конь",
-    "q": "ферзь", "r": "ладья", "b": "слон", "n": "конь",
+    "Q": "ферзь",
+    "R": "ладья",
+    "B": "слон",
+    "N": "конь",
+    "q": "ферзь",
+    "r": "ладья",
+    "b": "слон",
+    "n": "конь",
 }
 
 
@@ -218,12 +224,10 @@ def _piece_complex(board) -> str | None:
         return None
 
     white = sorted(
-        p.piece_type for p in non_pawns
-        if p.color == chess.WHITE and p.piece_type != chess.KING
+        p.piece_type for p in non_pawns if p.color == chess.WHITE and p.piece_type != chess.KING
     )
     black = sorted(
-        p.piece_type for p in non_pawns
-        if p.color != chess.WHITE and p.piece_type != chess.KING
+        p.piece_type for p in non_pawns if p.color != chess.WHITE and p.piece_type != chess.KING
     )
     white_pawns = sum(1 for p in pieces if p.color == chess.WHITE and p.piece_type == chess.PAWN)
     black_pawns = sum(1 for p in pieces if p.color != chess.WHITE and p.piece_type == chess.PAWN)

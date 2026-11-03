@@ -5,13 +5,16 @@ from shorts_clipper.core.settings import Settings
 
 
 def test_compliance_settings_defaults():
-    saved = {k: os.environ.get(k) for k in (
-        "SHORTS_COMPLIANCE_ENABLED",
-        "SHORTS_COMPLIANCE_LLM",
-        "SHORTS_COMPLIANCE_FINANCE_STRICT",
-        "SHORTS_COMPLIANCE_AUTO_DISCLAIMERS",
-        "SHORTS_COMPLIANCE_REPORT_DIR",
-    )}
+    saved = {
+        k: os.environ.get(k)
+        for k in (
+            "SHORTS_COMPLIANCE_ENABLED",
+            "SHORTS_COMPLIANCE_LLM",
+            "SHORTS_COMPLIANCE_FINANCE_STRICT",
+            "SHORTS_COMPLIANCE_AUTO_DISCLAIMERS",
+            "SHORTS_COMPLIANCE_REPORT_DIR",
+        )
+    }
     try:
         for k in saved:
             os.environ.pop(k, None)

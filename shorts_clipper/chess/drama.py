@@ -559,9 +559,7 @@ def plan_drama(
             badge_square = mate_king_square if is_mate_now else dst
             badge: tuple[str, str] | None = (badge_square, kind)
             accent = kind
-            highlights = (
-                (src, dst, mate_king_square) if is_mate_now else (src, dst)
-            )
+            highlights = (src, dst, mate_king_square) if is_mate_now else (src, dst)
         else:
             badge = None
             accent = "good"
@@ -586,9 +584,7 @@ def plan_drama(
     # the solved position rather than a claim that the game is over.
     is_mate = line_board.is_checkmate()
     final_headline = cfg.final_mate_label if is_mate else cfg.final_win_label
-    final_bottom = (
-        f"Мат — {solution_sans[-1]}" if is_mate and solution_sans else ""
-    )
+    final_bottom = f"Мат — {solution_sans[-1]}" if is_mate and solution_sans else ""
     frames.append(
         FrameSpec(
             fen=line_board.fen(),
@@ -665,9 +661,7 @@ def write_metadata(
     if plan.solution_sans:
         lines.append(f"Решение: {' '.join(plan.solution_sans)}.")
     if plan.wrong_moves:
-        lines.append(
-            "Ловушки: " + ", ".join(wrong.san for wrong in plan.wrong_moves) + "."
-        )
+        lines.append("Ловушки: " + ", ".join(wrong.san for wrong in plan.wrong_moves) + ".")
     lines += [
         "",
         "Вступай в клуб:",
@@ -730,11 +724,24 @@ def _mix_sfx(silent: Path, plan: DramaRenderPlan, work: Path) -> Path:
 
     mixed = work / "with_sfx.mp4"
     cmd = [
-        ffmpeg_path(), "-y", "-v", "error",
-        "-i", str(silent),
-        "-i", str(track),
-        "-map", "0:v", "-map", "1:a",
-        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+        ffmpeg_path(),
+        "-y",
+        "-v",
+        "error",
+        "-i",
+        str(silent),
+        "-i",
+        str(track),
+        "-map",
+        "0:v",
+        "-map",
+        "1:a",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
         "-shortest",
         str(mixed),
     ]

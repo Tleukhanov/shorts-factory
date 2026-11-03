@@ -319,7 +319,12 @@ def download_db(url: str = DB_URL, dest: str | Path | None = None) -> Path:
                 downloaded += len(chunk)
                 if total:
                     pct = downloaded * 100 // total
-                    log.info("downloaded %d%% (%d MB / %d MB)", pct, downloaded // (1024 * 1024), total // (1024 * 1024))
+                    log.info(
+                        "downloaded %d%% (%d MB / %d MB)",
+                        pct,
+                        downloaded // (1024 * 1024),
+                        total // (1024 * 1024),
+                    )
     log.info("puzzle DB saved to %s", dest)
     return dest
 
@@ -447,7 +452,9 @@ def _load_used(path: Path) -> set[str]:
 
 def _save_used(path: Path, ids: set[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"ids": sorted(ids)}, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(
+        json.dumps({"ids": sorted(ids)}, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
 
 def select_puzzles(

@@ -233,7 +233,8 @@ def collect_sources(paths: list[str] | tuple[str, ...]) -> list[Path]:
         p = Path(raw)
         if p.is_dir():
             found = sorted(
-                child for child in p.rglob("*")
+                child
+                for child in p.rglob("*")
                 if child.is_file() and child.suffix.lower() in PGN_SUFFIXES
             )
             for child in found:
@@ -407,9 +408,9 @@ def _collect_moments(
         found = challenges.find_challenges(game, limit=limit, min_ply=min_ply)
         return [
             Moment(
-                decision=dataclasses.replace(
-                    c, header=headers
-                ) if hasattr(c, "header") else _with_header(c, headers),
+                decision=dataclasses.replace(c, header=headers)
+                if hasattr(c, "header")
+                else _with_header(c, headers),
                 source=path,
                 game_index=games_in_file,
                 fmt="challenge",
@@ -426,9 +427,7 @@ def _collect_moments(
             from shorts_clipper.chess import pacing
         except ImportError:
             return []
-        worst = analysis.find_decisions(
-            game, critical_cp=critical_cp, min_ply=min_ply, limit=1
-        )
+        worst = analysis.find_decisions(game, critical_cp=critical_cp, min_ply=min_ply, limit=1)
         if not worst:
             return []
         return [
@@ -546,9 +545,7 @@ def plan_batch(
             results.append(SourceResult(index=i, source=str(path), ok=False, error=error))
             continue
         if games_in_file > 1:
-            log.info(
-                "%s holds %d games; analysing the first only", path.name, games_in_file
-            )
+            log.info("%s holds %d games; analysing the first only", path.name, games_in_file)
 
         moments = _collect_moments(
             fmt, game, path, games_in_file, critical_cp, min_ply, max(count, 1)
@@ -597,9 +594,7 @@ def run_batch(
     pipeline; the caller is expected to report it and exit non-zero.
     """
     settings = settings or Settings()
-    critical_cp = (
-        int(critical_cp) if critical_cp is not None else int(settings.chess_critical_cp)
-    )
+    critical_cp = int(critical_cp) if critical_cp is not None else int(settings.chess_critical_cp)
     min_ply = int(min_ply) if min_ply is not None else int(settings.chess_min_ply)
 
     files = collect_sources(sources)

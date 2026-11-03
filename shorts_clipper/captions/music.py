@@ -66,8 +66,7 @@ def list_tracks(music_dir: Path) -> list[Path]:
         if not music_dir.is_dir():
             return []
         return sorted(
-            p for p in music_dir.iterdir()
-            if p.is_file() and p.suffix.lower() in _MUSIC_EXTS
+            p for p in music_dir.iterdir() if p.is_file() and p.suffix.lower() in _MUSIC_EXTS
         )
     except OSError:
         return []
@@ -283,9 +282,7 @@ def ensure_synthesized_track(
         # half-written .wav that ``list_tracks`` would happily hand to ffmpeg.
         tmp = dest.with_name(dest.name + ".tmp")
         try:
-            dark_industrial.write_wav(
-                tmp, dark_industrial.make_dark_industrial(duration=duration)
-            )
+            dark_industrial.write_wav(tmp, dark_industrial.make_dark_industrial(duration=duration))
             tmp.replace(dest)
         except Exception:
             with contextlib.suppress(OSError):
@@ -319,7 +316,7 @@ def track_attribution(track: Path) -> str | None:
     for line in text.splitlines():
         line = line.strip()
         if line.startswith("Credit:"):
-            credit = line[len("Credit:"):].strip()
+            credit = line[len("Credit:") :].strip()
             break
     if not credit:
         return None
@@ -327,7 +324,7 @@ def track_attribution(track: Path) -> str | None:
     for line in text.splitlines():
         line = line.strip()
         if line.lower().startswith("source:"):
-            source = line[len("Source:"):].strip().split("?")[0]
+            source = line[len("Source:") :].strip().split("?")[0]
             break
     return credit if not source else f"{credit} ({source})"
 
@@ -360,8 +357,20 @@ def _decode_mono_16k(path: Path) -> np.ndarray | None:
         from shorts_clipper.utils.ffmpeg_path import ffmpeg_path
 
         proc = subprocess.run(
-            [ffmpeg_path(), "-v", "quiet", "-i", str(path), "-f", "s16le",
-             "-ac", "1", "-ar", "16000", "-"],
+            [
+                ffmpeg_path(),
+                "-v",
+                "quiet",
+                "-i",
+                str(path),
+                "-f",
+                "s16le",
+                "-ac",
+                "1",
+                "-ar",
+                "16000",
+                "-",
+            ],
             capture_output=True,
             timeout=60,
         )

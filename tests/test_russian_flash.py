@@ -58,7 +58,9 @@ class RussianFlashTests(unittest.TestCase):
         # 9.0s  @ bars=1 -> bars 2,3,4 = 3 grid + opener
         self.assertEqual(len(stock_visual.edit_flash_schedule(9.0, script=MONEY_SCRIPT)), 4)
         # 30.0s @ bars=2 -> bars 2,4,...,16... = 8 grid + opener
-        self.assertEqual(len(stock_visual.edit_flash_schedule(30.0, bars=2, script=MONEY_SCRIPT)), 9)
+        self.assertEqual(
+            len(stock_visual.edit_flash_schedule(30.0, bars=2, script=MONEY_SCRIPT)), 9
+        )
 
     def test_flash_schedule_timing_unchanged(self):
         flashes = stock_visual.edit_flash_schedule(9.0)
@@ -71,9 +73,7 @@ class RussianFlashTests(unittest.TestCase):
             self.assertLess(flash["start"], flash["end"])
             self.assertLessEqual(flash["end"], 9.0)
         for flash in grid:
-            self.assertAlmostEqual(
-                flash["start"], round(flash["start"] / bar) * bar, places=3
-            )
+            self.assertAlmostEqual(flash["start"], round(flash["start"] / bar) * bar, places=3)
 
     def test_flashes_never_overlap_at_any_stride(self):
         """Regression: the cold open used to overlap the first grid flash.
@@ -96,9 +96,7 @@ class RussianFlashTests(unittest.TestCase):
         """The opener must not push the grid out to a dead spot."""
         flashes = stock_visual.edit_flash_schedule(13.7, 132, bars=2, script=MONEY_SCRIPT, seed=1)
         self.assertTrue(flashes)
-        gaps = [
-            flashes[i + 1]["start"] - flashes[i]["start"] for i in range(len(flashes) - 1)
-        ]
+        gaps = [flashes[i + 1]["start"] - flashes[i]["start"] for i in range(len(flashes) - 1)]
         # Starts are rounded to 3 decimals, so allow for accumulated rounding.
         self.assertLessEqual(max(gaps), 2 * 4 * stock_visual.beat_seconds(132) + 5e-3)
 
@@ -145,8 +143,7 @@ class ScriptFlashSelectionTests(unittest.TestCase):
         """The reported bug was the same line 7s (2 slots) apart."""
         pool = stock_visual.flash_phrases_from_script(MONEY_SCRIPT)
         texts = [
-            f["text"]
-            for f in stock_visual.edit_flash_schedule(60.0, bars=2, script=MONEY_SCRIPT)
+            f["text"] for f in stock_visual.edit_flash_schedule(60.0, bars=2, script=MONEY_SCRIPT)
         ]
         window = min(len(pool), 3)
         self.assertGreaterEqual(len(texts), 2 * len(pool))
@@ -157,8 +154,7 @@ class ScriptFlashSelectionTests(unittest.TestCase):
     def test_every_pool_line_gets_used_on_a_long_clip(self):
         pool = stock_visual.flash_phrases_from_script(MONEY_SCRIPT)
         texts = [
-            f["text"]
-            for f in stock_visual.edit_flash_schedule(60.0, bars=2, script=MONEY_SCRIPT)
+            f["text"] for f in stock_visual.edit_flash_schedule(60.0, bars=2, script=MONEY_SCRIPT)
         ]
         self.assertEqual(set(texts), set(pool))
 

@@ -140,11 +140,23 @@ def _seed_grades(db_path: Path) -> dict[tuple[str | None, str | None], Retention
         db_path,
         [
             # (tech, youtube): median engagement 0.9 -> publish_rate 1.0 * 0.9 = A
-            {"platform": "youtube", "niche": "tech", "published": True,
-             "views": 100, "likes": 90, "comments": 0},
+            {
+                "platform": "youtube",
+                "niche": "tech",
+                "published": True,
+                "views": 100,
+                "likes": 90,
+                "comments": 0,
+            },
             # (tech, instagram): engagement 0.3 -> C (below B -> skip)
-            {"platform": "instagram", "niche": "tech", "published": True,
-             "views": 100, "likes": 30, "comments": 0},
+            {
+                "platform": "instagram",
+                "niche": "tech",
+                "published": True,
+                "views": 100,
+                "likes": 30,
+                "comments": 0,
+            },
         ],
     )
     return current_retention_grades(Settings(metrics_path=db_path))
@@ -319,8 +331,13 @@ class RetentionAmplifyGradesTests(unittest.TestCase):
             _seed(
                 db,
                 [
-                    {"platform": "youtube", "niche": "tech", "publish_ts": _past_iso(60),
-                     "views": 100, "likes": 90},
+                    {
+                        "platform": "youtube",
+                        "niche": "tech",
+                        "publish_ts": _past_iso(60),
+                        "views": 100,
+                        "likes": 90,
+                    },
                 ],
             )
             grades = current_retention_grades(Settings(metrics_path=db))
@@ -389,7 +406,9 @@ class RetentionAmplifyManagerTests:
         assert results == {}
         assert engine.amplify_factor_for("tech", "youtube") == 1.0
 
-    def test_missing_grades_allow_all(self, tmp_path, mock_registry, mock_r2, amp_settings, monkeypatch):
+    def test_missing_grades_allow_all(
+        self, tmp_path, mock_registry, mock_r2, amp_settings, monkeypatch
+    ):
         monkeypatch.setattr(
             "shorts_clipper.publishers.manager.Settings.from_env", lambda: amp_settings
         )
@@ -440,21 +459,26 @@ class RetentionAmplifyManagerTests:
 class RetentionAmplifyRunnerTests(unittest.TestCase):
     def test_refresh_returns_empty_when_feature_off(self):
         with tempfile.TemporaryDirectory() as tmp:
-            settings = Settings(compliance_enabled=False, retention_amplify=False,
-                                metrics_path=Path(tmp) / "metrics.sqlite")
+            settings = Settings(
+                compliance_enabled=False,
+                retention_amplify=False,
+                metrics_path=Path(tmp) / "metrics.sqlite",
+            )
             self.assertEqual(_refresh_retention_grades(settings), {})
 
     def test_refresh_loads_grades_when_feature_on(self):
         with tempfile.TemporaryDirectory() as tmp:
             db = Path(tmp) / "metrics.sqlite"
             _seed_grades(db)
-            settings = Settings(compliance_enabled=False, retention_amplify=True,
-                                metrics_path=db)
+            settings = Settings(compliance_enabled=False, retention_amplify=True, metrics_path=db)
             grades = _refresh_retention_grades(settings)
         self.assertIn(("tech", "youtube"), grades)
 
     def test_refresh_missing_db_falls_back_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
-            settings = Settings(compliance_enabled=False, retention_amplify=True,
-                                metrics_path=Path(tmp) / "nope.sqlite")
+            settings = Settings(
+                compliance_enabled=False,
+                retention_amplify=True,
+                metrics_path=Path(tmp) / "nope.sqlite",
+            )
             self.assertEqual(_refresh_retention_grades(settings), {})

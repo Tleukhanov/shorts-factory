@@ -102,9 +102,7 @@ def _publish_due_once(settings: Settings) -> None:
         meta = entry.get("metadata") or {}
         platforms = entry.get("platforms") or settings.publish_platforms
         video_id = meta.get("video_id") or (
-            extract_video_id(meta.get("source_url") or "")
-            if meta.get("source_url")
-            else None
+            extract_video_id(meta.get("source_url") or "") if meta.get("source_url") else None
         )
         clip_metadata = ClipMetadata(
             title=meta.get("title") or "",
@@ -123,7 +121,12 @@ def _publish_due_once(settings: Settings) -> None:
             successes = [r for r in results.values() if r.success]
             if successes:
                 update_publish_entry(queue_file, status="done")
-                log.info("Scheduled publish done: %s (%d/%d platforms)", video_path, len(successes), len(platforms))
+                log.info(
+                    "Scheduled publish done: %s (%d/%d platforms)",
+                    video_path,
+                    len(successes),
+                    len(platforms),
+                )
             else:
                 errors = [r.error_message for r in results.values() if r.error_message]
                 update_publish_entry(

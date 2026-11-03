@@ -193,10 +193,14 @@ class NoFlashRegressionTests(unittest.TestCase):
                 SEGMENTS, 0.0, Path(tmp) / "b.ass", flash_events=FLASH_EVENTS
             )
             plain_styles = [
-                ln for ln in plain.read_text(encoding="utf-8").splitlines() if ln.startswith("Style:")
+                ln
+                for ln in plain.read_text(encoding="utf-8").splitlines()
+                if ln.startswith("Style:")
             ]
             flash_styles = [
-                ln for ln in flashed.read_text(encoding="utf-8").splitlines() if ln.startswith("Style:")
+                ln
+                for ln in flashed.read_text(encoding="utf-8").splitlines()
+                if ln.startswith("Style:")
             ]
         self.assertEqual(len(flash_styles), len(plain_styles) + 1)
         self.assertIn(flash_styles[0], plain_styles)

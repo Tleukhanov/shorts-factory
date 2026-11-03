@@ -48,6 +48,7 @@ Adding a new platform like TikTok or Facebook is simple and requires **zero** ch
 4. Open `shorts_clipper/publishers/__init__.py` and register your new class:
    ```python
    from .tiktok.publisher import TikTokPublisher
+
    PublisherRegistry.register(TikTokPublisher)
    ```
 5. Add `tiktok` to `SHORTS_PUBLISH_PLATFORMS` in your `.env`.

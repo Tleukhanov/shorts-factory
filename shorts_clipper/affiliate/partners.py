@@ -155,8 +155,15 @@ def import_from_research(
     }
 
     _NICHE_KEYWORDS: list[str] = [
-        "cs2", "gaming", "setup", "peripherals", "skins", "competitive",
-        "esports", "streaming", "content creator",
+        "cs2",
+        "gaming",
+        "setup",
+        "peripherals",
+        "skins",
+        "competitive",
+        "esports",
+        "streaming",
+        "content creator",
     ]
 
     def _keywords_for(entry: dict) -> tuple[str, ...]:
@@ -266,6 +273,7 @@ def decorate_affiliate_url(link: str, partner_id: str, clip_name: str) -> str:
     )
     query = f"{parts.query}&{extra}" if parts.query else extra
     return urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
+
 
 def auto_cta_text(partner: AffiliatePartner, game_label: str) -> str:
     """Build a default CTA for a partner's mid-roll ad card."""

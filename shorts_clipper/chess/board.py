@@ -174,8 +174,18 @@ ZOOM_MAX = 1.12
 _PIECE_DIR = Path(__file__).with_name("assets") / "cburnett"
 
 PIECE_GLYPHS = {
-    "K": "♔", "Q": "♕", "R": "♖", "B": "♗", "N": "♘", "P": "♙",
-    "k": "♚", "q": "♛", "r": "♜", "b": "♝", "n": "♞", "p": "♟",
+    "K": "♔",
+    "Q": "♕",
+    "R": "♖",
+    "B": "♗",
+    "N": "♘",
+    "P": "♙",
+    "k": "♚",
+    "q": "♛",
+    "r": "♜",
+    "b": "♝",
+    "n": "♞",
+    "p": "♟",
 }
 
 # No single system font is guaranteed to carry both Cyrillic and the chess block:
@@ -553,7 +563,6 @@ def _text_anchor_box(draw, text: str, font) -> tuple[int, int]:
     return (y0, y1)
 
 
-
 def _line_step(draw, font) -> int:
     """Baseline-to-baseline distance for *font*: one line of a block."""
     try:
@@ -728,14 +737,20 @@ def _draw_band_row(draw, row, y: int, accent) -> None:
                 # A stroke in the fill colour is what makes the notation read as
                 # bold: only one text font family is loaded, and a heavy headline
                 # beat deserves the weight more than a second font file does.
-                draw.text((x, y), text, font=font, fill=TEXT_MAIN, anchor="la",
-                          stroke_width=2, stroke_fill=TEXT_MAIN)
+                draw.text(
+                    (x, y),
+                    text,
+                    font=font,
+                    fill=TEXT_MAIN,
+                    anchor="la",
+                    stroke_width=2,
+                    stroke_fill=TEXT_MAIN,
+                )
                 x += _text_extent(draw, text, font)[0] + _MOVE_STROKE
             else:
                 x = _draw_run(draw, x, y, text, font, accent if colour == "accent" else TEXT_DIM)
     else:
         draw.text((INFO_PAD, y), payload, font=font, fill=TEXT_DIM, anchor="la")
-
 
 
 def _render_info_band(draw, spec: FrameSpec, bottom_limit: int) -> None:
@@ -1040,11 +1055,19 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
             return
         glyph = PIECE_GLYPHS[symbol]
         if white:
-            draw.text((px, py + step * 0.02), glyph, fill=(252, 250, 246),
-                      font=glyph_font, anchor="mm", stroke_width=5, stroke_fill=(40, 38, 36))
+            draw.text(
+                (px, py + step * 0.02),
+                glyph,
+                fill=(252, 250, 246),
+                font=glyph_font,
+                anchor="mm",
+                stroke_width=5,
+                stroke_fill=(40, 38, 36),
+            )
         else:
-            draw.text((px, py + step * 0.02), glyph, fill=(38, 36, 34),
-                      font=glyph_font, anchor="mm")
+            draw.text(
+                (px, py + step * 0.02), glyph, fill=(38, 36, 34), font=glyph_font, anchor="mm"
+            )
 
     for (file, rank), (cx, cy) in _square_centres(BOARD).items():
         square = f"{file}{rank}"
@@ -1100,7 +1123,8 @@ def render_frame(spec: FrameSpec, out_path: str | Path) -> Path:
 
     draw.rectangle(
         [board_left, board_top, board_left + BOARD, board_top + BOARD],
-        outline=edge_colour, width=3,
+        outline=edge_colour,
+        width=3,
     )
 
     if spec.badge is not None:

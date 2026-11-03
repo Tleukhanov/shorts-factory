@@ -125,12 +125,8 @@ class EnsurePhonkTests(unittest.TestCase):
     def test_fetch_swallows_download_errors(self, fake_pix, fake_fs):
         # Pixabay empty -> falls to free-stock -> download fails -> no raise.
         fake_pix.return_value = []
-        fake_fs.return_value = [
-            Track(url="https://x/f.mp3", name="f", license="CC BY")
-        ]
-        with mock.patch(
-            "shorts_clipper.downloader.music_scraper._download", return_value=False
-        ):
+        fake_fs.return_value = [Track(url="https://x/f.mp3", name="f", license="CC BY")]
+        with mock.patch("shorts_clipper.downloader.music_scraper._download", return_value=False):
             out = fetch_phonk_tracks(Path("D:/shorts_music"), max_tracks=5)
         self.assertEqual(out, [])
 

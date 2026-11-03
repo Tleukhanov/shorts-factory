@@ -132,8 +132,8 @@ class ScoutCacheTests(unittest.TestCase):
 
                 # purge_expired: write a row with cached_at set 72h ago UTC, ttl=1h
                 utc_72h_ago = (
-                    datetime.now(UTC) - timedelta(hours=72)
-                ).replace(tzinfo=None).isoformat()
+                    (datetime.now(UTC) - timedelta(hours=72)).replace(tzinfo=None).isoformat()
+                )
                 with contextlib.closing(sqlite3.connect(db_path)) as con:
                     con.execute(
                         "INSERT INTO metadata_cache (video_id, metadata_json, cached_at, ttl_hours) "

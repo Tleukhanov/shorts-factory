@@ -142,9 +142,7 @@ def test_hook_label_matches_the_puzzle_type(sample_puzzle, drama_cfg):
 
 def test_legacy_hook_label_still_overrides_the_theme(sample_puzzle):
     cfg = drama.DramaConfig(hook_label="СТАРЫЙ ЗАГОЛОВОК")
-    assert drama._hook_label(_with_themes(sample_puzzle, "mateIn2"), cfg) == (
-        "СТАРЫЙ ЗАГОЛОВОК"
-    )
+    assert drama._hook_label(_with_themes(sample_puzzle, "mateIn2"), cfg) == ("СТАРЫЙ ЗАГОЛОВОК")
 
 
 def test_music_resolution_prefers_config_then_first_track(tmp_path):
@@ -157,9 +155,7 @@ def test_music_resolution_prefers_config_then_first_track(tmp_path):
     explicit = tmp_path / "real.wav"
     explicit.write_bytes(b"x")
     assert (
-        drama.resolve_music(
-            cfg, explicit=explicit, music_dir=tmp_path, allow_generate=False
-        )
+        drama.resolve_music(cfg, explicit=explicit, music_dir=tmp_path, allow_generate=False)
         == explicit
     )
 
@@ -201,9 +197,7 @@ def test_the_curated_answer_is_never_labelled_wrong(sample_puzzle, monkeypatch):
 
     board_ = chess.Board(sample_puzzle.puzzle_fen())
     answer = sample_puzzle.solution_moves[0]
-    other = next(
-        move for move in board_.legal_moves if move.uci() != answer
-    )
+    other = next(move for move in board_.legal_moves if move.uci() != answer)
 
     def fake_top_moves(fen, count=2, depth_override=None):
         return [
@@ -263,9 +257,7 @@ def test_plan_has_hook_wrong_answer_mate_and_cta(sample_puzzle, drama_cfg):
     mate_king = chess.square_name(mate_board.king(mate_board.turn))
     assert mate.badge == (mate_king, "mate")
 
-    line_landings = [
-        frames[start + drama.SLIDE_STEPS] for start in plan.move_block_starts
-    ]
+    line_landings = [frames[start + drama.SLIDE_STEPS] for start in plan.move_block_starts]
     assert len(line_landings) == len(plan.solution_sans)
     for move_index, frame in enumerate(line_landings):
         assert frame.arrow_color == "good"
@@ -275,9 +267,7 @@ def test_plan_has_hook_wrong_answer_mate_and_cta(sample_puzzle, drama_cfg):
             assert frame.badge is not None
             if frame.badge[1] == "mate":
                 board_after = chess.Board(frame.fen)
-                assert frame.badge[0] == chess.square_name(
-                    board_after.king(board_after.turn)
-                )
+                assert frame.badge[0] == chess.square_name(board_after.king(board_after.turn))
             else:
                 assert frame.badge[0] == frame.arrow[1]
                 assert frame.badge[1] == "good"
@@ -365,9 +355,7 @@ def test_tease_frame_precedes_the_answer(sample_puzzle, drama_cfg):
     assert tease.badge is None
     assert not tease.highlight_squares
     assert tease.fen == sample_puzzle.puzzle_fen()
-    assert plan.clip_plan.holds[answer_index - 1] == pytest.approx(
-        drama.TEASE_SECONDS
-    )
+    assert plan.clip_plan.holds[answer_index - 1] == pytest.approx(drama.TEASE_SECONDS)
 
 
 def test_labels_rotate_through_their_banks(sample_puzzle, drama_cfg):
@@ -388,9 +376,7 @@ def test_labels_rotate_through_their_banks(sample_puzzle, drama_cfg):
         sample_puzzle, drama_cfg
     )
     seen = {
-        drama._answer_label(
-            dataclasses.replace(sample_puzzle, id=f"puzzle-{index}"), drama_cfg
-        )
+        drama._answer_label(dataclasses.replace(sample_puzzle, id=f"puzzle-{index}"), drama_cfg)
         for index in range(20)
     }
     assert seen <= set(drama_cfg.answer_labels)
@@ -427,9 +413,7 @@ def test_beat_sync_snaps_move_blocks(sample_puzzle, drama_cfg, tmp_path, monkeyp
     seed.write_bytes(b"RIFF")  # only needs to exist; the grid is stubbed
     monkeypatch.setattr(drama, "_beat_grid", lambda path: beats.BeatGrid(period=0.5))
 
-    plan = drama.plan_drama(
-        sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg, music_path=seed
-    )
+    plan = drama.plan_drama(sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg, music_path=seed)
     # Slide frames stay short, but every narrative block (slides + landing)
     # has to land on a beat.
     index = 0
@@ -478,9 +462,7 @@ def test_mono_board_and_red_arrow_rendering(tmp_path):
         assert board.MONO_LIGHT_SQUARE in colors
         assert board.MONO_DARK_SQUARE in colors
 
-        board_region = rgb.crop(
-            (0, board.BOARD_TOP, board.FRAME_W, board.BOARD_TOP + board.BOARD)
-        )
+        board_region = rgb.crop((0, board.BOARD_TOP, board.FRAME_W, board.BOARD_TOP + board.BOARD))
         raw = board_region.tobytes()
         assert any(
             raw[i] > 110 and raw[i] > raw[i + 1] * 2 and raw[i] > raw[i + 2] * 2
@@ -489,10 +471,9 @@ def test_mono_board_and_red_arrow_rendering(tmp_path):
 
         header = rgb.crop((0, 0, board.FRAME_W, board.HEADER_HEIGHT))
         raw = header.tobytes()
-        assert any(
-            raw[i] > 150 and raw[i] > raw[i + 1] + 50
-            for i in range(0, len(raw), 3)
-        ), "the red headline did not render"
+        assert any(raw[i] > 150 and raw[i] > raw[i + 1] + 50 for i in range(0, len(raw), 3)), (
+            "the red headline did not render"
+        )
 
 
 def test_arrow_colour_palette():
@@ -573,13 +554,10 @@ def test_square_badge_renders_in_its_kind_colour(tmp_path, kind, colour):
             )
         )
         colors = [pixel for _, pixel in crop.getcolors(maxcolors=100_000)]
-        assert any(
-            max(abs(pixel[i] - colour[i]) for i in range(3)) <= 20
-            for pixel in colors
-        ), f"{kind} badge colour missing from the destination square"
-        assert any(pixel == board.BADGE_BORDER for pixel in colors), (
-            "the badge has no dark edge"
+        assert any(max(abs(pixel[i] - colour[i]) for i in range(3)) <= 20 for pixel in colors), (
+            f"{kind} badge colour missing from the destination square"
         )
+        assert any(pixel == board.BADGE_BORDER for pixel in colors), "the badge has no dark edge"
 
 
 def test_annotation_renders_at_the_board_corner(tmp_path):
@@ -599,14 +577,11 @@ def test_annotation_renders_at_the_board_corner(tmp_path):
 
     with Image.open(out) as img:
         rgb = img.convert("RGB")
-        corner = rgb.crop(
-            (board.FRAME_W // 2, 0, board.FRAME_W, board.BOARD_TOP)
-        )
+        corner = rgb.crop((board.FRAME_W // 2, 0, board.FRAME_W, board.BOARD_TOP))
         raw = corner.tobytes()
-        assert any(
-            raw[i + 1] > 120 and raw[i + 1] > raw[i] + 30
-            for i in range(0, len(raw), 3)
-        ), "the green annotation did not render above the board"
+        assert any(raw[i + 1] > 120 and raw[i + 1] > raw[i] + 30 for i in range(0, len(raw), 3)), (
+            "the green annotation did not render above the board"
+        )
 
 
 # --------------------------------------------------------------------------
@@ -614,12 +589,8 @@ def test_annotation_renders_at_the_board_corner(tmp_path):
 # --------------------------------------------------------------------------
 
 
-def test_metadata_has_title_solution_links_and_hashtags(
-    sample_puzzle, drama_cfg, tmp_path
-):
-    plan = drama.plan_drama(
-        sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg
-    )
+def test_metadata_has_title_solution_links_and_hashtags(sample_puzzle, drama_cfg, tmp_path):
+    plan = drama.plan_drama(sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg)
     out = tmp_path / "drama.mp4"
     meta = drama.write_metadata(plan, out, drama_cfg)
     text = meta.read_text(encoding="utf-8")
@@ -633,12 +604,8 @@ def test_metadata_has_title_solution_links_and_hashtags(
     assert "Мотив:" in text
 
 
-def test_render_drama_without_music_produces_video(
-    sample_puzzle, drama_cfg, tmp_path
-):
-    plan = drama.plan_drama(
-        sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg
-    )
+def test_render_drama_without_music_produces_video(sample_puzzle, drama_cfg, tmp_path):
+    plan = drama.plan_drama(sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg)
     out = tmp_path / "drama.mp4"
     result = drama.render_drama(plan, out, music_path=None)
     assert result is not None

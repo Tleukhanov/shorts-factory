@@ -316,9 +316,7 @@ def pace_game(
         # turned 2 of the 3 window frames neutral and broke the window's
         # visual signature.
         merged = "bad" if (spec.accent == "bad" or accent == "bad") else spec.accent
-        frames.append(
-            dataclasses.replace(spec, arrow=arrow, accent=merged, info=info)
-        )
+        frames.append(dataclasses.replace(spec, arrow=arrow, accent=merged, info=info))
     return frames, holds
 
 
@@ -532,11 +530,7 @@ def _drop_repeats(beats: list[_Beat], placements: list[str], target: int) -> lis
     """
     out: list[_Beat] = []
     for beat in beats:
-        if (
-            out
-            and beat.ply != target
-            and placements[beat.ply] == placements[out[-1].ply]
-        ):
+        if out and beat.ply != target and placements[beat.ply] == placements[out[-1].ply]:
             continue
         out.append(beat)
     return out
@@ -565,9 +559,9 @@ def _thin(beats: list[_Beat], max_frames: int, target: int) -> list[_Beat]:
         # The window on its own is over budget. What survives is the decisive
         # ply and whatever is nearest to it, which is the least disposable part
         # of the window.
-        keep = sorted(
-            slow, key=lambda i: (abs(beats[i].ply - target), beats[i].ply)
-        )[: max(1, max_frames)]
+        keep = sorted(slow, key=lambda i: (abs(beats[i].ply - target), beats[i].ply))[
+            : max(1, max_frames)
+        ]
         slow = sorted(keep)
         spare = max_frames - len(slow)
 

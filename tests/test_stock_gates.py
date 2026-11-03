@@ -176,9 +176,7 @@ class StockAffiliateTests(unittest.TestCase):
         """Clip affiliate flags are untouched by stock defaults."""
         patcher = _clean()
         try:
-            settings = _load(
-                "SHORTS_VISUAL_MODE=clip\nSHORTS_AFFILIATE_AD_CARD=true\n"
-            )
+            settings = _load("SHORTS_VISUAL_MODE=clip\nSHORTS_AFFILIATE_AD_CARD=true\n")
             self.assertTrue(settings.affiliate_ad_card)
             self.assertFalse(settings.stock_affiliate_cards_enabled)
         finally:

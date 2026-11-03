@@ -123,7 +123,10 @@ class AffiliateSelectorTests(unittest.TestCase):
 
     def test_disabled_partners_are_skipped(self):
         disabled = AffiliatePartner(
-            id="d", name="Off", link_en="https://example.com/r/d", match_keywords=("marketing",),
+            id="d",
+            name="Off",
+            link_en="https://example.com/r/d",
+            match_keywords=("marketing",),
             enabled=False,
         )
         self.assertIsNone(select_affiliate_partner([disabled], transcript_text="marketing!"))

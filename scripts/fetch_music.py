@@ -30,7 +30,7 @@ def _download(url: str, dest: Path) -> Path:
         print(f"  ERROR downloading {url}: {exc}", file=sys.stderr)
         if out.exists():
             out.unlink()
-        raise SystemExit(1)
+        raise SystemExit(1) from exc
     print(f"  saved: {out}")
     return out
 

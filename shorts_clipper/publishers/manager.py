@@ -27,19 +27,21 @@ RETRIABLE_HTTP_STATUSES = {408, 429, 500, 502, 503, 504}
 
 # Structured Google-style reasons (error.errors[].reason / error.status in the
 # JSON body, lower-cased). These are matched against parsed fields, not text.
-_RETRIABLE_REASONS = frozenset({
-    "quotaexceeded",
-    "dailylimitexceeded",
-    "userratelimitexceeded",
-    "ratelimitexceeded",
-    "rateexceeded",
-    "resource_exhausted",
-    "backenderror",
-    "internalerror",
-    "unavailable",
-    "temporarily_unavailable",
-    "deadlineexceeded",
-})
+_RETRIABLE_REASONS = frozenset(
+    {
+        "quotaexceeded",
+        "dailylimitexceeded",
+        "userratelimitexceeded",
+        "ratelimitexceeded",
+        "rateexceeded",
+        "resource_exhausted",
+        "backenderror",
+        "internalerror",
+        "unavailable",
+        "temporarily_unavailable",
+        "deadlineexceeded",
+    }
+)
 
 _RETRIABLE_STATUS_CODES = frozenset(str(c) for c in RETRIABLE_HTTP_STATUSES)
 
@@ -121,10 +123,7 @@ def _status_code(exc: Exception) -> int | None:
                 return None
     response = getattr(exc, "response", None)
     if response is not None:
-        status = (
-            getattr(response, "status_code", None)
-            or getattr(response, "status", None)
-        )
+        status = getattr(response, "status_code", None) or getattr(response, "status", None)
         if status is not None:
             try:
                 return int(str(status).lstrip("#"))
@@ -385,7 +384,9 @@ class PublishingEngine:
                         )
 
                 if verdict.level == "block":
-                    gate.write_block_report(video_path, metadata.title, metadata.description, verdict)
+                    gate.write_block_report(
+                        video_path, metadata.title, metadata.description, verdict
+                    )
                     log.error(
                         "⛔ Compliance BLOCK: %s | reasons: %s",
                         metadata.title,
@@ -518,7 +519,9 @@ class PublishingEngine:
                                 error_message=f"R2 Upload failed: {e}",
                             )
                         publishers = {
-                            p: pub for p, pub in publishers.items() if p not in platforms_needing_url
+                            p: pub
+                            for p, pub in publishers.items()
+                            if p not in platforms_needing_url
                         }
                         if not publishers:
                             self._generate_manifest(video_path, metadata, results)
@@ -606,8 +609,7 @@ class PublishingEngine:
 
                 try:
                     log.info(
-                        f"📤 Publishing to {platform_name} "
-                        f"(Attempt {attempt}/{max_attempts})..."
+                        f"📤 Publishing to {platform_name} (Attempt {attempt}/{max_attempts})..."
                     )
 
                     result = publisher.publish(video_path, metadata, signed_url)
@@ -622,15 +624,11 @@ class PublishingEngine:
                             if result.platform_id and publisher.verify(result.platform_id):
                                 log.info(f"✅ Verified upload for {platform_name}!")
                             else:
-                                log.warning(
-                                    f"⚠️ Verification inconclusive for {platform_name}"
-                                )
+                                log.warning(f"⚠️ Verification inconclusive for {platform_name}")
                                 result.success = False
                                 result.error_message = "Verification failed."
                         except Exception as ve:
-                            log.warning(
-                                f"⚠️ Verification check failed for {platform_name}: {ve}"
-                            )
+                            log.warning(f"⚠️ Verification check failed for {platform_name}: {ve}")
                             result.success = False
                             result.error_message = f"Verification exception: {ve}"
 
@@ -662,8 +660,7 @@ class PublishingEngine:
                     # the failed response so the next attempt verifies it first.
                     known_platform_id = _extract_platform_id(e, known_platform_id)
                     log.warning(
-                        f"⚠️ Transient network error on attempt {attempt} for "
-                        f"{platform_name}: {e}"
+                        f"⚠️ Transient network error on attempt {attempt} for {platform_name}: {e}"
                     )
                     result = PublishResult(
                         platform=platform_name,
@@ -692,9 +689,7 @@ class PublishingEngine:
                             error_message=str(e),
                         )
                     else:
-                        log.warning(
-                            f"⚠️ Permanent error for {platform_name}: {e}"
-                        )
+                        log.warning(f"⚠️ Permanent error for {platform_name}: {e}")
                         result = PublishResult(
                             platform=platform_name,
                             success=False,
@@ -705,8 +700,10 @@ class PublishingEngine:
 
                 # ── Decide whether another attempt fits the retry budget ─────
                 if attempt < max_attempts:
-                    wait_time = wait_override if wait_override is not None else min(
-                        self.base_backoff**attempt, self.max_backoff
+                    wait_time = (
+                        wait_override
+                        if wait_override is not None
+                        else min(self.base_backoff**attempt, self.max_backoff)
                     )
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:
@@ -744,9 +741,7 @@ class PublishingEngine:
                         )
                         break
                     wait_time = max(0, wait_time)
-                    log.info(
-                        f"⏳ Waiting {wait_time:.0f}s before retrying {platform_name}..."
-                    )
+                    log.info(f"⏳ Waiting {wait_time:.0f}s before retrying {platform_name}...")
                     time.sleep(wait_time)
                     wait_override = None
 
@@ -797,9 +792,7 @@ class PublishingEngine:
         decision = getattr(self, "_retention_decisions", {}).get((niche, platform))
         return getattr(decision, "amplify_factor", 1.0) if decision is not None else 1.0
 
-    def effective_daily_cap(
-        self, base_cap: float, niche: str | None, platform: str
-    ) -> float:
+    def effective_daily_cap(self, base_cap: float, niche: str | None, platform: str) -> float:
         """Daily-cap budget for one pair: ``base_cap * amplify_factor`` when the
         pair is allowed and amplified; unchanged ``base_cap`` otherwise.
         """

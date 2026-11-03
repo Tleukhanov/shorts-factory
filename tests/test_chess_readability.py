@@ -47,9 +47,7 @@ class SkimReadabilityTests(unittest.TestCase):
             self.skipTest("no decisive move in the fixture game")
 
         skim = [h for h, f in zip(plan.holds, plan.frames, strict=True) if f.accent != "bad"]
-        self.assertGreater(
-            sum(skim), 2.0, "the entire game passes in under two seconds"
-        )
+        self.assertGreater(sum(skim), 2.0, "the entire game passes in under two seconds")
 
     def test_length_stays_short_shape(self):
         for plies, seed in ((40, 5), (90, 6), (170, 7)):
@@ -71,7 +69,8 @@ class SkimReadabilityTests(unittest.TestCase):
             return [h for h, f in zip(plan.holds, plan.frames, strict=True) if f.accent != "bad"]
 
         self.assertGreaterEqual(
-            min(skim_holds(long)), min(skim_holds(short)) - 0.01,
+            min(skim_holds(long)),
+            min(skim_holds(short)) - 0.01,
             "a longer game was made to go faster rather than to cut frames",
         )
 
@@ -79,9 +78,7 @@ class SkimReadabilityTests(unittest.TestCase):
         plan, _ = self._plan(170, 9)
         if plan is None:
             self.skipTest("no decisive move in the fixture game")
-        self.assertTrue(
-            [f for f in plan.frames if f.arrow], "trimming removed the reveal"
-        )
+        self.assertTrue([f for f in plan.frames if f.arrow], "trimming removed the reveal")
 
 
 @unittest.skipUnless(HAVE_CHESS, "python-chess not installed")
@@ -98,15 +95,11 @@ class TurnLabelTests(unittest.TestCase):
 
     def test_named_from_headers(self):
         fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-        side, name = clip.turn_label(
-            fen, {"White": "Anderssen", "Black": "Kieseritzky"}
-        )
+        side, name = clip.turn_label(fen, {"White": "Anderssen", "Black": "Kieseritzky"})
         self.assertEqual(side, "ходят белые")
         self.assertEqual(name, "Anderssen")
 
-        side, name = clip.turn_label(
-            fen, {"White": "Anderssen", "Black": "Kieseritzky"}
-        )
+        side, name = clip.turn_label(fen, {"White": "Anderssen", "Black": "Kieseritzky"})
         self.assertEqual(name, "Anderssen")
 
     def test_black_name_follows_the_turn(self):
@@ -149,9 +142,7 @@ class TurnLabelTests(unittest.TestCase):
 
         plan = pacing.plan_for_highlight(game, decisions[0])
         skim = [f.info.turn_side for f in plan.frames if f.accent != "bad"]
-        self.assertGreater(
-            len(set(skim)), 1, "every skim frame named the same side to move"
-        )
+        self.assertGreater(len(set(skim)), 1, "every skim frame named the same side to move")
 
 
 if __name__ == "__main__":  # pragma: no cover

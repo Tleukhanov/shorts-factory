@@ -50,9 +50,7 @@ Return ONLY valid JSON, no commentary:
 {{"score": <float 0.0-1.0>, "reason": "<short Russian reason, 1 sentence>"}}
 """
 
-_SYSTEM_LANG_NOTE = (
-    "Note: respond with a Russian-language reason if the moment text is in Russian."
-)
+_SYSTEM_LANG_NOTE = "Note: respond with a Russian-language reason if the moment text is in Russian."
 
 
 def _parse_verdict(text: str) -> dict:
@@ -137,11 +135,7 @@ class HookJudge:
             return HookVerdict(0.5, "empty moment text — neutral", True)
 
         prompt = (
-            _PROMPT_TEMPLATE
-            + "\n"
-            + _SYSTEM_LANG_NOTE
-            + "\n\n--- MOMENT TEXT ---\n"
-            + moment_text
+            _PROMPT_TEMPLATE + "\n" + _SYSTEM_LANG_NOTE + "\n\n--- MOMENT TEXT ---\n" + moment_text
         )
 
         try:
@@ -162,9 +156,7 @@ class HookJudge:
 
         return HookVerdict(score=score, reason=reason, ok=ok)
 
-    def rank_moments(
-        self, moments: list[dict], text_fn
-    ) -> list[dict]:
+    def rank_moments(self, moments: list[dict], text_fn) -> list[dict]:
         """Rank moments by hook score (descending).
 
         *moments* is a list of dicts, each containing at least an ``id`` key

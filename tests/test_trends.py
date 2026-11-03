@@ -84,7 +84,10 @@ class ScoreVodTests(unittest.TestCase):
 
     def test_score_deterministic(self):
         video = make_video(
-            "a", title="Clutch ace", duration_seconds=2400, view_count=50000,
+            "a",
+            title="Clutch ace",
+            duration_seconds=2400,
+            view_count=50000,
             upload_date=(NOW - timedelta(days=2)).strftime("%Y%m%d"),
         )
         self.assertEqual(score_vod(video, now=NOW), score_vod(video, now=NOW))
@@ -109,8 +112,12 @@ class RankVodsTests(unittest.TestCase):
         self.assertEqual([v.video_id for v in ranked], ["aaa", "zzz"])
 
     def test_min_recent_days_filters(self):
-        fresh = make_video("fresh", upload_date=(datetime.now(UTC) - timedelta(days=1)).strftime("%Y%m%d"))
-        stale = make_video("stale", upload_date=(datetime.now(UTC) - timedelta(days=30)).strftime("%Y%m%d"))
+        fresh = make_video(
+            "fresh", upload_date=(datetime.now(UTC) - timedelta(days=1)).strftime("%Y%m%d")
+        )
+        stale = make_video(
+            "stale", upload_date=(datetime.now(UTC) - timedelta(days=30)).strftime("%Y%m%d")
+        )
         no_date = make_video("nodate")
         ranked = rank_vods([stale, fresh, no_date], min_recent_days=7)
         self.assertEqual([v.video_id for v in ranked], ["fresh"])
@@ -167,9 +174,12 @@ class ChannelVodsProviderTests(unittest.TestCase):
         def booom(*args, **kwargs):
             raise AssertionError("config must not be read when channel_urls provided")
 
-        with mock.patch("shorts_clipper.scout.channel_vods._config_path", side_effect=booom), mock.patch(
-            "shorts_clipper.scout.channel_vods.subprocess.run",
-            return_value=_proc(""),
+        with (
+            mock.patch("shorts_clipper.scout.channel_vods._config_path", side_effect=booom),
+            mock.patch(
+                "shorts_clipper.scout.channel_vods.subprocess.run",
+                return_value=_proc(""),
+            ),
         ):
             results = YouTubeChannelVodsProvider().search(
                 "cs2", limit=5, channel_urls=["https://www.youtube.com/@X/videos"]
@@ -193,16 +203,24 @@ class ChannelVodsProviderTests(unittest.TestCase):
                     "enabled": False,
                     "tags": [],
                 },
-                {"title": "Twitch", "platform": "twitch", "uri": "https://twitch.tv/x/videos", "enabled": True},
+                {
+                    "title": "Twitch",
+                    "platform": "twitch",
+                    "uri": "https://twitch.tv/x/videos",
+                    "enabled": True,
+                },
             ]
         }
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "vod_sources.json"
             path.write_text(json.dumps(config), encoding="utf-8")
-            with mock.patch("shorts_clipper.scout.channel_vods._config_path", return_value=path), mock.patch(
-                "shorts_clipper.scout.channel_vods.subprocess.run",
-                return_value=_proc(json.dumps({"id": "c1", "title": "T", "channel": "Pimp"})),
-            ) as fake_run:
+            with (
+                mock.patch("shorts_clipper.scout.channel_vods._config_path", return_value=path),
+                mock.patch(
+                    "shorts_clipper.scout.channel_vods.subprocess.run",
+                    return_value=_proc(json.dumps({"id": "c1", "title": "T", "channel": "Pimp"})),
+                ) as fake_run,
+            ):
                 results = YouTubeChannelVodsProvider().search("cs2", limit=5)
 
         self.assertEqual(len(results), 1)
@@ -241,7 +259,9 @@ class ChannelVodsProviderTests(unittest.TestCase):
             return_value=_proc(line),
         ):
             results = YouTubeChannelVodsProvider().search(
-                "cs2", limit=5, channel_urls=["https://www.youtube.com/@A/videos"],
+                "cs2",
+                limit=5,
+                channel_urls=["https://www.youtube.com/@A/videos"],
                 exclude_ids={"seen"},
             )
         self.assertEqual(results, [])

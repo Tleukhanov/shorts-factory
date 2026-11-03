@@ -59,9 +59,7 @@ _USER_AGENT = (
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 _AUDIO_RE = re.compile(r"https://cdn\.pixabay\.com/(?:audio|video)/[^\"'\\ ]+\.mp3")
-_MP3_RE = re.compile(
-    r"""(?:href|src)=["']([^"']+?\.mp3)["']"""
-)
+_MP3_RE = re.compile(r"""(?:href|src)=["']([^"']+?\.mp3)["']""")
 _AUDIO_EXTS = {".mp3", ".m4a", ".ogg", ".wav"}
 
 # Audible file magic signatures used to reject HTML/error pages that some
@@ -165,12 +163,14 @@ def search_pixabay_api(
     tracks: list[Track] = []
     seen: set[str] = set()
     for term in _search_terms(query, tags):
-        params = urllib.parse.urlencode({
-            "key": api_key,
-            "q": term,
-            "media_type": "music",
-            "per_page": min(max_tracks, 200),
-        })
+        params = urllib.parse.urlencode(
+            {
+                "key": api_key,
+                "q": term,
+                "media_type": "music",
+                "per_page": min(max_tracks, 200),
+            }
+        )
         url = f"{_PIXABAY_API_URL}?{params}"
         try:
             req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
@@ -191,7 +191,9 @@ def search_pixabay_api(
             tracks.append(
                 Track(
                     url=audio_url,
-                    name=f"{hit_tags.split(',')[0].strip() if hit_tags else term} - {artist}".strip(" -"),
+                    name=f"{hit_tags.split(',')[0].strip() if hit_tags else term} - {artist}".strip(
+                        " -"
+                    ),
                     artist=artist or None,
                     license="Pixabay Content License (free commercial use)",
                 )
@@ -231,15 +233,17 @@ def search_jamendo_tracks(
     tracks: list[Track] = []
     seen: set[str] = set()
     for term in _search_terms(query, tags):
-        params = urllib.parse.urlencode({
-            "client_id": api_key,
-            "search": term,
-            "limit": min(max_tracks, 50),
-            "order": "popularity_week",
-            "audioformat": "mp32",
-            "include": "licenses",
-            "license": "by,by-sa",
-        })
+        params = urllib.parse.urlencode(
+            {
+                "client_id": api_key,
+                "search": term,
+                "limit": min(max_tracks, 50),
+                "order": "popularity_week",
+                "audioformat": "mp32",
+                "include": "licenses",
+                "license": "by,by-sa",
+            }
+        )
         url = f"{_JAMENDO_API_URL}?{params}"
         try:
             req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
@@ -315,9 +319,7 @@ def _fetch_html(url: str, timeout: int = 15) -> str:
         return resp.read().decode("utf-8", errors="ignore")
 
 
-def scrape_pixabay_urls(
-    max_pages: int = 1, tags: Sequence[str] | None = None
-) -> list[str]:
+def scrape_pixabay_urls(max_pages: int = 1, tags: Sequence[str] | None = None) -> list[str]:
     """Return de-duplicated Pixabay CDN MP3 URLs for the configured tags.
 
     Scrapes every search term in *tags* (or the defaults) across *max_pages*
@@ -492,9 +494,7 @@ def _download(url: str, dest: Path) -> bool:
         req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
         with urllib.request.urlopen(req, timeout=60) as resp, open(dest, "wb") as fh:
             fh.write(resp.read())
-        if dest.stat().st_size == 0 or not _is_audible_bytes(
-            dest.read_bytes(), dest.suffix
-        ):
+        if dest.stat().st_size == 0 or not _is_audible_bytes(dest.read_bytes(), dest.suffix):
             dest.unlink(missing_ok=True)
             log.warning("Rejected non-audio payload from %s", url)
             return False
@@ -542,10 +542,11 @@ def ensure_phonk_tracks(
     don't hammer the sources.
     """
     music_dir = Path(music_dir)
-    existing = [
-        p for p in music_dir.iterdir()
-        if p.is_file() and p.suffix.lower() in _AUDIO_EXTS
-    ] if music_dir.is_dir() else []
+    existing = (
+        [p for p in music_dir.iterdir() if p.is_file() and p.suffix.lower() in _AUDIO_EXTS]
+        if music_dir.is_dir()
+        else []
+    )
     if len(existing) >= min_tracks:
         log.info("music_dir already has %d tracks; skipping fetch", len(existing))
         return
@@ -558,4 +559,3 @@ def ensure_phonk_tracks(
         jamendo_api_key=jamendo_api_key,
         tags=tags,
     )
-

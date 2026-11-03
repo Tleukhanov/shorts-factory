@@ -28,9 +28,7 @@ def pgn_text():
 
 
 def test_parse_tournament_id_from_url():
-    assert lichess._parse_tournament_id(
-        "https://lichess.org/tournament/MwiQDf4S"
-    ) == "MwiQDf4S"
+    assert lichess._parse_tournament_id("https://lichess.org/tournament/MwiQDf4S") == "MwiQDf4S"
 
 
 def test_parse_tournament_id_from_bare_id():

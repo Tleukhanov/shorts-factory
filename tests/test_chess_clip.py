@@ -127,7 +127,9 @@ class ClipRenderTests(unittest.TestCase):
             self.assertIsNotNone(out, "render_clip returned None")
             probe = subprocess.run(
                 [ffmpeg_path(), "-hide_banner", "-i", str(out)],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True,
+                text=True,
+                timeout=60,
             )
             self.assertIn("Stream #0:0", probe.stderr, "no video stream")
             self.assertIn("Stream #0:1", probe.stderr, "no audio stream")
@@ -170,7 +172,9 @@ class ClipRenderTests(unittest.TestCase):
             self.assertEqual(out.name, "m.mp4", "bed mix fell back to the input")
             probe = subprocess.run(
                 [ffmpeg_path(), "-hide_banner", "-i", str(out)],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True,
+                text=True,
+                timeout=60,
             )
             self.assertIn("Stream #0:1", probe.stderr)
 

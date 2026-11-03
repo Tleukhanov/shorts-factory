@@ -163,10 +163,14 @@ class ComplianceGate:
             if not has_disc:
                 if self._finance_strict:
                     worst_level = _worst(worst_level, "block")
-                    reasons.append("finance_topic_detected: missing required disclaimer (strict mode)")
+                    reasons.append(
+                        "finance_topic_detected: missing required disclaimer (strict mode)"
+                    )
                 else:
                     worst_level = _worst(worst_level, "review")
-                    reasons.append("finance_topic_detected: missing disclaimer (non-strict → review)")
+                    reasons.append(
+                        "finance_topic_detected: missing disclaimer (non-strict → review)"
+                    )
 
         # ── 3. Ad disclosure check ───────────────────────────────────
         has_affiliate = self._rules.has_affiliate_link(combined_text)

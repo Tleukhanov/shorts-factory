@@ -132,17 +132,44 @@ class RetentionReportAggregationTests(unittest.TestCase):
         _seed(
             db_path,
             [
-                {"platform": "youtube", "niche": "tech", "published": True,
-                 "views": 1000, "likes": 50, "comments": 10,
-                 "hook_score": 0.8, "energy": 0.5},
-                {"platform": "youtube", "niche": "tech", "published": True,
-                 "views": 2000, "likes": 100, "comments": 20,
-                 "hook_score": 0.9, "energy": 0.7},
-                {"platform": "youtube", "niche": "tech", "published": False,
-                 "views": None, "likes": None, "comments": None},
-                {"platform": "instagram", "niche": "tech", "published": True,
-                 "views": 500, "likes": 40, "comments": 5,
-                 "hook_score": 0.6, "energy": 0.9},
+                {
+                    "platform": "youtube",
+                    "niche": "tech",
+                    "published": True,
+                    "views": 1000,
+                    "likes": 50,
+                    "comments": 10,
+                    "hook_score": 0.8,
+                    "energy": 0.5,
+                },
+                {
+                    "platform": "youtube",
+                    "niche": "tech",
+                    "published": True,
+                    "views": 2000,
+                    "likes": 100,
+                    "comments": 20,
+                    "hook_score": 0.9,
+                    "energy": 0.7,
+                },
+                {
+                    "platform": "youtube",
+                    "niche": "tech",
+                    "published": False,
+                    "views": None,
+                    "likes": None,
+                    "comments": None,
+                },
+                {
+                    "platform": "instagram",
+                    "niche": "tech",
+                    "published": True,
+                    "views": 500,
+                    "likes": 40,
+                    "comments": 5,
+                    "hook_score": 0.6,
+                    "energy": 0.9,
+                },
             ],
         )
         return db_path
@@ -178,10 +205,20 @@ class RetentionReportAggregationTests(unittest.TestCase):
             _seed(
                 db_path,
                 [
-                    {"platform": "tiktok", "niche": "gaming", "views": 100,
-                     "likes": 50, "comments": 25},
-                    {"platform": "tiktok", "niche": "gaming", "views": 100,
-                     "likes": 60, "comments": 30},
+                    {
+                        "platform": "tiktok",
+                        "niche": "gaming",
+                        "views": 100,
+                        "likes": 50,
+                        "comments": 25,
+                    },
+                    {
+                        "platform": "tiktok",
+                        "niche": "gaming",
+                        "views": 100,
+                        "likes": 60,
+                        "comments": 30,
+                    },
                 ],
             )
             out_path = Path(tmp) / "report.json"
@@ -198,10 +235,8 @@ class RetentionReportAggregationTests(unittest.TestCase):
             _seed(
                 db_path,
                 [
-                    {"platform": "youtube", "niche": "tech", "published": True,
-                     "views": None},
-                    {"platform": "youtube", "niche": "tech", "published": False,
-                     "views": None},
+                    {"platform": "youtube", "niche": "tech", "published": True, "views": None},
+                    {"platform": "youtube", "niche": "tech", "published": False, "views": None},
                 ],
             )
             out_path = Path(tmp) / "report.json"
@@ -216,9 +251,7 @@ class RetentionReportAggregationTests(unittest.TestCase):
     def test_filter_by_platform_returns_only_that_platform(self):
         db_path = self._one_platform_context()
         out_path = Path(db_path).parent / "report.json"
-        code, _, err = _run(
-            _settings(db_path), _args(platform="youtube", out=str(out_path))
-        )
+        code, _, err = _run(_settings(db_path), _args(platform="youtube", out=str(out_path)))
         self.assertEqual(code, 0, err)
 
         rows = json.loads(out_path.read_text(encoding="utf-8"))["rows"]
@@ -287,10 +320,20 @@ class RetentionReportAggregationTests(unittest.TestCase):
             _seed(
                 db_path,
                 [
-                    {"platform": "instagram", "niche": "fitness", "views": 100,
-                     "likes": 80, "comments": 30},
-                    {"platform": "youtube", "niche": "tech", "views": 100,
-                     "likes": 1, "comments": 0},
+                    {
+                        "platform": "instagram",
+                        "niche": "fitness",
+                        "views": 100,
+                        "likes": 80,
+                        "comments": 30,
+                    },
+                    {
+                        "platform": "youtube",
+                        "niche": "tech",
+                        "views": 100,
+                        "likes": 1,
+                        "comments": 0,
+                    },
                     {"platform": "youtube", "niche": "food", "views": 10},
                 ],
             )
@@ -314,9 +357,7 @@ class RetentionReportCliWiringTests(unittest.TestCase):
             db_path = Path(tmp) / "metrics.sqlite"
             out_path = Path(tmp) / "report.json"
             _seed(db_path, [{"platform": "youtube", "niche": "tech", "views": 10}])
-            with mock.patch.object(
-                cli.Settings, "from_env", return_value=_settings(db_path)
-            ):
+            with mock.patch.object(cli.Settings, "from_env", return_value=_settings(db_path)):
                 code = cli.main(
                     [
                         "retention-report",

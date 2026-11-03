@@ -17,9 +17,7 @@ def get_video_metadata(path: str) -> VideoMetadata:
         raise RuntimeError(f"Could not open video file {path}: {exc}") from exc
 
     try:
-        video_stream = next(
-            (s for s in container.streams if s.type == "video"), None
-        )
+        video_stream = next((s for s in container.streams if s.type == "video"), None)
         if video_stream is None:
             raise RuntimeError(f"No video stream found in {path}")
 

@@ -341,17 +341,13 @@ def _cmd_chess_drama(args: argparse.Namespace, settings: Settings) -> int:
         print("⚠️  No music track found — rendering without music.", file=sys.stderr)
 
     used = puzzle_db._load_used(used_path)
-    puzzles = puzzle_db.select_puzzles(
-        sel_cfg.db_path, count=count, cfg=sel_cfg, used=used
-    )
+    puzzles = puzzle_db.select_puzzles(sel_cfg.db_path, count=count, cfg=sel_cfg, used=used)
     print(f"🎭 Selected {len(puzzles)} drama puzzles from the Lichess DB")
 
     produced: list[Path] = []
     for i, puzzle in enumerate(puzzles, 1):
         out = output_dir / f"drama_{i:03d}_{puzzle.id}.mp4"
-        wrong_moves = drama.find_wrong_moves(
-            puzzle, count=drama_cfg.max_wrong_moves
-        )
+        wrong_moves = drama.find_wrong_moves(puzzle, count=drama_cfg.max_wrong_moves)
         plan = drama.plan_drama(puzzle, wrong_moves, drama_cfg, music_path=bed)
         traps = ", ".join(wrong.san for wrong in wrong_moves) or "no engine traps"
         print(f"  [{i}/{len(puzzles)}] {puzzle.id} — {traps} — saving to {out.name}")

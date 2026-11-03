@@ -72,28 +72,41 @@ class SkimStartsNearTheRevealTests(unittest.TestCase):
 class NoFabricatedNumbersTests(unittest.TestCase):
     def test_the_mate_sentinel_is_never_printed_as_pawns(self):
         decision = analysis.Decision(
-            ply=6, move_number=3, color="black", san="Bxf6", uci="c8f6",
-            fen_before=chess.STARTING_FEN, fen_after=chess.STARTING_FEN,
-            eval_before_cp=30, eval_after_cp=9999, mover_loss_cp=10_000,
-            material=False, header={}, mate_after=None,
+            ply=6,
+            move_number=3,
+            color="black",
+            san="Bxf6",
+            uci="c8f6",
+            fen_before=chess.STARTING_FEN,
+            fen_after=chess.STARTING_FEN,
+            eval_before_cp=30,
+            eval_after_cp=9999,
+            mover_loss_cp=10_000,
+            material=False,
+            header={},
+            mate_after=None,
         )
         frame = narration.narrate(
-            decision=decision, ply=5, total_plies=40,
-            fen_before=chess.STARTING_FEN, fen_after=chess.STARTING_FEN,
+            decision=decision,
+            ply=5,
+            total_plies=40,
+            fen_before=chess.STARTING_FEN,
+            fen_after=chess.STARTING_FEN,
             color="black",
         )
         for field in (frame.info.hook, frame.info.detail):
             self.assertNotIn(
-                "100.0", field,
+                "100.0",
+                field,
                 f"the mate sentinel was printed as a pawn figure: {field!r}",
             )
 
     def test_no_real_decision_ever_prints_an_impossible_figure(self):
-        for pg in sorted(Path(
-            r"C:\Users\huawei\AppData\Local\Temp\chessfleet"
-        ).glob("*.pgn"))[:6] if Path(
-            r"C:\Users\huawei\AppData\Local\Temp\chessfleet"
-        ).is_dir() else []:
+        for pg in (
+            sorted(Path(r"C:\Users\huawei\AppData\Local\Temp\chessfleet").glob("*.pgn"))[:6]
+            if Path(r"C:\Users\huawei\AppData\Local\Temp\chessfleet").is_dir()
+            else []
+        ):
             game = analysis.load_pgn_file(pg)
             if game is None:
                 continue
@@ -101,9 +114,13 @@ class NoFabricatedNumbersTests(unittest.TestCase):
             for dec in analysis.find_decisions(game, limit=2, min_ply=6):
                 with self.subTest(pgn=pg.name, san=dec.san):
                     frame = narration.narrate(
-                        decision=dec, ply=dec.ply - 1, total_plies=total,
-                        fen_before=dec.fen_before, fen_after=dec.fen_after,
-                        color=dec.color, headers=game.headers,
+                        decision=dec,
+                        ply=dec.ply - 1,
+                        total_plies=total,
+                        fen_before=dec.fen_before,
+                        fen_after=dec.fen_after,
+                        color=dec.color,
+                        headers=game.headers,
                     )
                     for field in (frame.info.hook, frame.info.detail):
                         self.assertNotIn("100.0", field)
@@ -119,7 +136,8 @@ class OneProgressCounterTests(unittest.TestCase):
         plan = pacing.plan_for_highlight(game, decisions[0])
         for frame in plan.frames:
             self.assertEqual(
-                frame.top_text, "",
+                frame.top_text,
+                "",
                 "the caption still draws a progress counter beside the band's",
             )
 

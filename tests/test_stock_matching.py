@@ -83,13 +83,17 @@ class BackgroundTagTests(unittest.TestCase):
 
     def test_pexels_cache_folder_supplies_semantics(self):
         """``00.mp4`` is meaningless; the query folder it was fetched for is not."""
-        tags = stock_tags.background_tags("data/stock/_pexels_cache/morning-sunrise-forest-calm/00.mp4")
+        tags = stock_tags.background_tags(
+            "data/stock/_pexels_cache/morning-sunrise-forest-calm/00.mp4"
+        )
         self.assertEqual(tags, frozenset({"morning", "sunrise", "forest", "calm"}))
 
     def test_parent_folder_is_always_part_of_the_token_source(self):
         """The folder is read too — that is how Pexels query slugs get through."""
         self.assertEqual(stock_tags.background_tags("data/stock/self-growth/00.mp4"), frozenset())
-        self.assertEqual(stock_tags.background_tags("data/stock/money/00.mp4"), frozenset({"money"}))
+        self.assertEqual(
+            stock_tags.background_tags("data/stock/money/00.mp4"), frozenset({"money"})
+        )
 
     def test_tags_txt_sidecar_overrides_filename(self):
         with tempfile.TemporaryDirectory() as d:
@@ -150,14 +154,16 @@ class ScriptTagTests(unittest.TestCase):
         self.assertIn("morning", stock_tags.script_tags("Тело встало утром и взяло будильник."))
         self.assertIn("night", stock_tags.script_tags("В 23:00 было выбрано «ещё чуть-чуть»."))
         self.assertIn("gym", stock_tags.script_tags("Пять утра. Двенадцать подтягиваний."))
-        self.assertIn("couple", stock_tags.script_tags("Он скучает по себе тому, каким был до тебя."))
+        self.assertIn(
+            "couple", stock_tags.script_tags("Он скучает по себе тому, каким был до тебя.")
+        )
 
     def test_unrelated_text_has_no_tags(self):
         self.assertEqual(stock_tags.script_tags("абракадабра"), frozenset())
         self.assertEqual(stock_tags.script_tags(""), frozenset())
 
     def test_generic_word_is_not_a_false_positive(self):
-        """"любой" must not read as the couple tag."""
+        """ "любой" must not read as the couple tag."""
         self.assertNotIn("couple", stock_tags.script_tags("Любой другой вариант тоже подходит."))
 
     def test_mountain_does_not_swallow_city(self):
@@ -206,9 +212,7 @@ class LoadStockScriptMatchingTests(unittest.TestCase):
             tmp = Path(d)
             pool = self._pool(tmp)
             for seed in range(30):
-                picked = stock_visual.load_stock_script(
-                    pool, seed, background="forest_morning.mp4"
-                )
+                picked = stock_visual.load_stock_script(pool, seed, background="forest_morning.mp4")
                 self.assertEqual(picked, "Пять утра. Двенадцать подтягиваний.")
 
     def test_explicit_tags_and_background_path_agree(self):
@@ -241,8 +245,14 @@ class LoadStockScriptMatchingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             tmp = Path(d)
             pool = self._pool(tmp)
-            first = [stock_visual.load_stock_script(pool, s, background="night_city.mp4") for s in range(10)]
-            second = [stock_visual.load_stock_script(pool, s, background="night_city.mp4") for s in range(10)]
+            first = [
+                stock_visual.load_stock_script(pool, s, background="night_city.mp4")
+                for s in range(10)
+            ]
+            second = [
+                stock_visual.load_stock_script(pool, s, background="night_city.mp4")
+                for s in range(10)
+            ]
             self.assertEqual(first, second)
 
     def test_script_path_precedence_survives_matching(self):
@@ -294,7 +304,9 @@ class ThemeFingerprintTests(unittest.TestCase):
     """Verify near-duplicate detection between differently worded quotes."""
 
     def test_tokens_drop_function_words_and_digits(self):
-        self.assertEqual(theme_tokens("Я не знаю, что делать в 23:00"), frozenset({"знаю", "делать"}))
+        self.assertEqual(
+            theme_tokens("Я не знаю, что делать в 23:00"), frozenset({"знаю", "делать"})
+        )
 
     def test_tokens_stem_inflections(self):
         self.assertEqual(
@@ -333,9 +345,7 @@ class RecentScriptsTests(unittest.TestCase):
     def test_is_same_theme_catches_rewordings(self):
         recent = RecentScripts()
         recent.add("Пять утра. Двенадцать подтягиваний, пот на ладонях.")
-        self.assertTrue(
-            recent.is_same_theme("Пять утра. Тринадцать подтягиваний, пот на ладонях.")
-        )
+        self.assertTrue(recent.is_same_theme("Пять утра. Тринадцать подтягиваний, пот на ладонях."))
         self.assertFalse(recent.is_same_theme("Зарплата шестьдесят тысяч."))
 
     def test_history_is_bounded(self):
@@ -351,7 +361,9 @@ class RecentScriptsTests(unittest.TestCase):
         recent = RecentScripts()
         recent.add("Пять утра. Двенадцать подтягиваний, пот на ладонях.")
         self.assertEqual(recent.guard([]), [])
-        self.assertEqual(len(recent.guard(["Пять утра. Двенадцать подтягиваний, пот на ладонях."])), 1)
+        self.assertEqual(
+            len(recent.guard(["Пять утра. Двенадцать подтягиваний, пот на ладонях."])), 1
+        )
         self.assertEqual(
             recent.guard(
                 [
@@ -390,9 +402,7 @@ class ChooseFreshTests(unittest.TestCase):
     def test_recent_guard_suppresses_a_theme_repeat(self):
         recent = RecentScripts()
         recent.add("alpha quote")
-        picked, reset = choose_fresh(
-            ["alpha quote", "beta quote"], set(), seed=0, recent=recent
-        )
+        picked, reset = choose_fresh(["alpha quote", "beta quote"], set(), seed=0, recent=recent)
         self.assertEqual(picked, "beta quote")
         self.assertFalse(reset)
 
@@ -556,7 +566,11 @@ class SelectStockScriptMatchingTests(unittest.TestCase):
             outputs: list[str] = []
             for hash_seed in ("0", "12345"):
                 proc = subprocess.run(
-                    [sys.executable, "-c", code.replace("POOL", repr(str(pool))).replace("WORK", repr(str(work)))],
+                    [
+                        sys.executable,
+                        "-c",
+                        code.replace("POOL", repr(str(pool))).replace("WORK", repr(str(work))),
+                    ],
                     capture_output=True,
                     text=True,
                     timeout=120,
@@ -632,24 +646,30 @@ class RunStockShortMatchingTests(unittest.TestCase):
                 output_dir=tmp / "outputs",
                 publish_platforms=[],
             )
-            with mock.patch(
-                "shorts_clipper.pipeline.stock_runner._refresh_retention_grades", return_value={}
-            ), mock.patch(
-                "shorts_clipper.audio.tts.synthesize_voiceover_boundaries", side_effect=fake_tts
-            ), mock.patch(
-                "shorts_clipper.captions.music.track_duration", return_value=8.0
-            ), mock.patch(
-                "shorts_clipper.audio.tts.speech_window", return_value=None
-            ), mock.patch(
-                "shorts_clipper.visual.stock.speech_window", return_value=None
-            ), mock.patch(
-                "shorts_clipper.visual.stock.list_stock_backgrounds", side_effect=fake_pool
-            ), mock.patch(
-                "shorts_clipper.visual.stock.render_stock_background", side_effect=fake_render
-            ), mock.patch(
-                "shorts_clipper.pipeline.stock_runner.generate_ass_file", return_value=tmp / "s.ass"
-            ), mock.patch(
-                "shorts_clipper.pipeline.stock_runner.burn_subtitles", side_effect=fake_burn
+            with (
+                mock.patch(
+                    "shorts_clipper.pipeline.stock_runner._refresh_retention_grades",
+                    return_value={},
+                ),
+                mock.patch(
+                    "shorts_clipper.audio.tts.synthesize_voiceover_boundaries", side_effect=fake_tts
+                ),
+                mock.patch("shorts_clipper.captions.music.track_duration", return_value=8.0),
+                mock.patch("shorts_clipper.audio.tts.speech_window", return_value=None),
+                mock.patch("shorts_clipper.visual.stock.speech_window", return_value=None),
+                mock.patch(
+                    "shorts_clipper.visual.stock.list_stock_backgrounds", side_effect=fake_pool
+                ),
+                mock.patch(
+                    "shorts_clipper.visual.stock.render_stock_background", side_effect=fake_render
+                ),
+                mock.patch(
+                    "shorts_clipper.pipeline.stock_runner.generate_ass_file",
+                    return_value=tmp / "s.ass",
+                ),
+                mock.patch(
+                    "shorts_clipper.pipeline.stock_runner.burn_subtitles", side_effect=fake_burn
+                ),
             ):
                 stock_runner.run_stock_short(
                     settings=settings, count=1, used_path=tmp / "used.json"
@@ -670,9 +690,7 @@ class RunStockShortMatchingTests(unittest.TestCase):
             niche_dir = tmp / "niches"
             (niche_dir / "self-growth").mkdir(parents=True)
             script = "Телефон убран — и через пятнадцать минут выясняется, что занимал их сам. Не ты без него. Он без тебя."
-            (niche_dir / "self-growth" / "scripts.txt").write_text(
-                script + "\n", encoding="utf-8"
-            )
+            (niche_dir / "self-growth" / "scripts.txt").write_text(script + "\n", encoding="utf-8")
 
             flash_kwargs: list[dict] = []
             burned_flash_text: list[str] = []
@@ -729,26 +747,32 @@ class RunStockShortMatchingTests(unittest.TestCase):
                 output_dir=tmp / "outputs",
                 publish_platforms=[],
             )
-            with mock.patch(
-                "shorts_clipper.pipeline.stock_runner._refresh_retention_grades", return_value={}
-            ), mock.patch(
-                "shorts_clipper.audio.tts.synthesize_voiceover_boundaries", side_effect=fake_tts
-            ), mock.patch(
-                "shorts_clipper.captions.music.track_duration", return_value=8.0
-            ), mock.patch(
-                "shorts_clipper.audio.tts.speech_window", return_value=None
-            ), mock.patch(
-                "shorts_clipper.visual.stock.speech_window", return_value=None
-            ), mock.patch(
-                "shorts_clipper.visual.stock.list_stock_backgrounds", side_effect=fake_pool
-            ), mock.patch(
-                "shorts_clipper.visual.stock.render_stock_background", side_effect=fake_render
-            ), mock.patch(
-                "shorts_clipper.visual.stock.edit_flash_schedule", side_effect=real_schedule
-            ), mock.patch(
-                "shorts_clipper.pipeline.stock_runner.generate_ass_file", side_effect=fake_ass
-            ), mock.patch(
-                "shorts_clipper.pipeline.stock_runner.burn_subtitles", side_effect=fake_burn
+            with (
+                mock.patch(
+                    "shorts_clipper.pipeline.stock_runner._refresh_retention_grades",
+                    return_value={},
+                ),
+                mock.patch(
+                    "shorts_clipper.audio.tts.synthesize_voiceover_boundaries", side_effect=fake_tts
+                ),
+                mock.patch("shorts_clipper.captions.music.track_duration", return_value=8.0),
+                mock.patch("shorts_clipper.audio.tts.speech_window", return_value=None),
+                mock.patch("shorts_clipper.visual.stock.speech_window", return_value=None),
+                mock.patch(
+                    "shorts_clipper.visual.stock.list_stock_backgrounds", side_effect=fake_pool
+                ),
+                mock.patch(
+                    "shorts_clipper.visual.stock.render_stock_background", side_effect=fake_render
+                ),
+                mock.patch(
+                    "shorts_clipper.visual.stock.edit_flash_schedule", side_effect=real_schedule
+                ),
+                mock.patch(
+                    "shorts_clipper.pipeline.stock_runner.generate_ass_file", side_effect=fake_ass
+                ),
+                mock.patch(
+                    "shorts_clipper.pipeline.stock_runner.burn_subtitles", side_effect=fake_burn
+                ),
             ):
                 stock_runner.run_stock_short(
                     settings=settings, count=1, used_path=tmp / "used.json"

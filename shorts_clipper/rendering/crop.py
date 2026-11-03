@@ -24,9 +24,7 @@ _WIDE_W = 1920
 _WIDE_H = 1080
 
 
-def _build_crop_filter(
-    src_w: int, src_h: int, layout: str, *, seed: int | None = None
-) -> str:
+def _build_crop_filter(src_w: int, src_h: int, layout: str, *, seed: int | None = None) -> str:
     """Return an FFmpeg -vf / -filter_complex string for the requested layout."""
     src_ratio = src_w / src_h
 
@@ -160,9 +158,7 @@ def process_to_vertical(
     return output_path
 
 
-def _build_wide_crop_filter(
-    src_w: int, src_h: int, layout: str, *, seed: int | None = None
-) -> str:
+def _build_wide_crop_filter(src_w: int, src_h: int, layout: str, *, seed: int | None = None) -> str:
     """Return an FFmpeg -vf string for a 16:9 (1920×1080) wide crop."""
     src_ratio = src_w / src_h
 

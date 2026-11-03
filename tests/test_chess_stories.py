@@ -203,8 +203,7 @@ def test_tournament_id_from_args():
     assert stories.tournament_id_from_args([]) == ""
     assert stories.tournament_id_from_args(["MwiQDf4S"]) == "MwiQDf4S"
     assert (
-        stories.tournament_id_from_args(["https://lichess.org/tournament/MwiQDf4S"])
-        == "MwiQDf4S"
+        stories.tournament_id_from_args(["https://lichess.org/tournament/MwiQDf4S"]) == "MwiQDf4S"
     )
 
 

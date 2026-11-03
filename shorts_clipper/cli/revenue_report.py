@@ -83,7 +83,9 @@ def run_revenue_report(settings: Settings, args: argparse.Namespace) -> int:
         return _no_events("no affiliate events recorded yet")
 
     # ── Aggregates ─────────────────────────────────────────────────────
-    total_revenue = sum(r["amount"] for r in rows if r.get("event_type") == "revenue" and r.get("amount"))
+    total_revenue = sum(
+        r["amount"] for r in rows if r.get("event_type") == "revenue" and r.get("amount")
+    )
     total_clicks = sum(1 for r in rows if r.get("event_type") == "click")
     total_conversions = sum(1 for r in rows if r.get("event_type") == "conversion")
     total_revenue_events = sum(1 for r in rows if r.get("event_type") == "revenue")
@@ -183,8 +185,7 @@ def _render_markdown(payload: dict[str, Any]) -> str:
     lines.append(f"Metrics DB: `{payload['metrics_path']}`")
     filters = payload["filters"]
     lines.append(
-        f"Filters: niche={filters['niche'] or 'all'}, "
-        f"partner={filters['partner'] or 'all'}"
+        f"Filters: niche={filters['niche'] or 'all'}, partner={filters['partner'] or 'all'}"
     )
     lines.append(
         f"Total revenue: **${_fmt_money(payload['total_revenue'])}** "

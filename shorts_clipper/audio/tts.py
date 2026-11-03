@@ -57,7 +57,7 @@ def _detect_language(text: str) -> str:
     if not text:
         return "en"
     latin = sum(1 for ch in text if "a" <= ch.lower() <= "z")
-    cyrillic = sum(1 for ch in text if "\u0400" <= ch <= "\u04FF")
+    cyrillic = sum(1 for ch in text if "\u0400" <= ch <= "\u04ff")
     if cyrillic > latin:
         return "ru"
     return "en"
@@ -177,7 +177,7 @@ def build_voiceover_text(
         if total + len(text) + 1 > max_chars:
             remaining = max_chars - total
             if remaining > 20:
-                text = text[: remaining].rsplit(" ", 1)[0]
+                text = text[:remaining].rsplit(" ", 1)[0]
                 parts.append(text)
             break
         parts.append(text)
@@ -363,7 +363,9 @@ def _synthesize_audio_bytes(
                     kwargs["pitch"] = pitch
                 communicate = edge_tts.Communicate(text=text, boundary="WordBoundary", **kwargs)
             except TypeError:
-                communicate = edge_tts.Communicate(text=text, voice=voice or pick_voice(text), rate=rate)
+                communicate = edge_tts.Communicate(
+                    text=text, voice=voice or pick_voice(text), rate=rate
+                )
             audio = bytearray()
             boundaries: list = []
             try:
@@ -491,7 +493,9 @@ def finalize_word_boundaries(text: str, boundaries, audio_path) -> list:
         return []
     normalized = normalize_word_boundaries(fallback, duration=duration)
     if normalized:
-        log.info("Using proportional word timings for %d words (no engine boundaries)", len(normalized))
+        log.info(
+            "Using proportional word timings for %d words (no engine boundaries)", len(normalized)
+        )
     return normalized
 
 

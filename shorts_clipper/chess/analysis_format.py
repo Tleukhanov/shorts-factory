@@ -147,7 +147,9 @@ def plan_analysis(
     )
 
     hook_voice = "Найдёшь ошибку в партии клуба?"
-    reveal_voice = f"{white} — {black}. Ход {decision.move_number}, {decision.san}. {_loss_voice(decision)}"
+    reveal_voice = (
+        f"{white} — {black}. Ход {decision.move_number}, {decision.san}. {_loss_voice(decision)}"
+    )
     cta_voice = f"Больше разборов — в клубе {cfg.club_name}."
 
     voice_lines = [hook_voice, reveal_voice, None, cta_voice]
@@ -209,9 +211,7 @@ def render_analysis(
         if voice and any(plan.voice_lines):
             voice_files = _synthesize_lines(plan.voice_lines, work)
             voice_durations = [_wav_duration(p) if p else 0.0 for p in voice_files]
-            plan.clip_plan.holds, plan.frame_starts = _adjust_holds_for_voice(
-                plan, voice_durations
-            )
+            plan.clip_plan.holds, plan.frame_starts = _adjust_holds_for_voice(plan, voice_durations)
 
         silent_video = clip.render_clip(plan.clip_plan, work / "silent.mp4", work_dir=work)
         if silent_video is None:
@@ -225,11 +225,24 @@ def render_analysis(
             if voice_wav is not None:
                 voiced = work / "voiced.mp4"
                 cmd = [
-                    ffmpeg_path(), "-y", "-v", "error",
-                    "-i", str(silent_video),
-                    "-i", str(voice_wav),
-                    "-map", "0:v", "-map", "1:a",
-                    "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                    ffmpeg_path(),
+                    "-y",
+                    "-v",
+                    "error",
+                    "-i",
+                    str(silent_video),
+                    "-i",
+                    str(voice_wav),
+                    "-map",
+                    "0:v",
+                    "-map",
+                    "1:a",
+                    "-c:v",
+                    "copy",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "192k",
                     "-shortest",
                     str(voiced),
                 ]
@@ -248,7 +261,10 @@ def render_analysis(
         if voiced != out:
             subprocess.run(
                 [ffmpeg_path(), "-y", "-v", "error", "-i", str(voiced), "-c", "copy", str(out)],
-                capture_output=True, text=True, timeout=120, check=False,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
             )
         return out if out.is_file() else voiced
     finally:

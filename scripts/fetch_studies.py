@@ -106,9 +106,7 @@ def _is_real_game(block: str) -> tuple[bool, str]:
         return False, f"result is {result or 'missing'}, not a played game"
     # A study chapter naming its own chapter name is usually a hand-typed
     # demonstration. Real games carry a Site or a Round or an ECO.
-    has_provenance = any(
-        _header(block, tag) for tag in ("Site", "Round", "ECO", "Opening")
-    )
+    has_provenance = any(_header(block, tag) for tag in ("Site", "Round", "ECO", "Opening"))
     if not has_provenance:
         return False, "no Site/Round/ECO"
     return True, ""
@@ -165,8 +163,11 @@ def split_games(text: str) -> list[str]:
         game = strip_variations("\n".join(lines))
         # Strip the study-only tags: they confuse nothing but they are not PGN.
         game = "\n".join(
-            ln for ln in game.splitlines()
-            if not re.match(r"^\[(StudyName|ChapterName|ChapterURL|Annotator|UTCDate|UTCTime)\s", ln)
+            ln
+            for ln in game.splitlines()
+            if not re.match(
+                r"^\[(StudyName|ChapterName|ChapterURL|Annotator|UTCDate|UTCTime)\s", ln
+            )
         )
         if game.strip():
             kept.append(game.strip() + "\n")

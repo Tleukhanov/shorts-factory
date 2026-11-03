@@ -560,9 +560,7 @@ def publish_clip(
             from shorts_clipper.publishers.models import ClipMetadata
 
             video_id = meta.get("video_id") or (
-                extract_video_id(meta.get("source_url") or "")
-                if meta.get("source_url")
-                else None
+                extract_video_id(meta.get("source_url") or "") if meta.get("source_url") else None
             )
 
             meta["publish_status"] = "uploading"
@@ -602,9 +600,7 @@ def publish_clip(
                 )
                 return
 
-            results = engine.publish(
-                path, clip_meta, target_platforms, video_id=video_id
-            )
+            results = engine.publish(path, clip_meta, target_platforms, video_id=video_id)
 
             meta["publish_progress"] = 100
 
@@ -1133,11 +1129,7 @@ def _write_env_merged(updates: dict[str, str]) -> None:
     appended. The file is replaced atomically via a temp file + os.replace.
     """
     env_path = Path(".env")
-    lines = (
-        env_path.read_text(encoding="utf-8-sig").splitlines()
-        if env_path.exists()
-        else []
-    )
+    lines = env_path.read_text(encoding="utf-8-sig").splitlines() if env_path.exists() else []
     merged: list[str] = []
     for line in lines:
         stripped = line.strip()

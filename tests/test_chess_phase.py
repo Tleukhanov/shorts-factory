@@ -234,9 +234,11 @@ class TheFloorTests(unittest.TestCase):
     def test_the_floor_does_not_fire_on_a_normal_phase(self):
         game = _random_game(plies=180, seed=8)
         _, holds = pacing.pace_game(game, target_ply=90)
-        natural = pacing.LEAD_IN_SECONDS * (
-            pacing.LEAD_IN_PLIES - 2 * pacing.SLOW_WINDOW_PLIES
-        ) + pacing.SLOW_SECONDS_PER_PLY * 2 + pacing.DECISIVE_SECONDS
+        natural = (
+            pacing.LEAD_IN_SECONDS * (pacing.LEAD_IN_PLIES - 2 * pacing.SLOW_WINDOW_PLIES)
+            + pacing.SLOW_SECONDS_PER_PLY * 2
+            + pacing.DECISIVE_SECONDS
+        )
         self.assertGreater(natural, pacing.MIN_CLIP_SECONDS)
         self.assertAlmostEqual(sum(holds), natural, places=2)
 

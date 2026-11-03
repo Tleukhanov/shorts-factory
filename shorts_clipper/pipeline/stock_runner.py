@@ -293,9 +293,7 @@ def run_stock_short(
                     # Not fatal. Some channels carry their message entirely in
                     # on-screen text over a bed (e.g. chess annotations), and a
                     # missing narration should not silently drop the short.
-                    log.warning(
-                        "Stock short voiceover unavailable; rendering without narration."
-                    )
+                    log.warning("Stock short voiceover unavailable; rendering without narration.")
 
             if has_vo:
                 speak_duration = track_duration(vo_path) or 8.0
@@ -441,7 +439,9 @@ def run_stock_short(
                     log.warning("Affiliate selection failed for stock short %d: %s", idx, aff_err)
 
             banner_kwargs = {}
-            banner_path = getattr(affiliate_partner, "banner_path", None) if affiliate_partner else None
+            banner_path = (
+                getattr(affiliate_partner, "banner_path", None) if affiliate_partner else None
+            )
             if (
                 banner_path
                 and Path(banner_path).exists()
@@ -611,7 +611,9 @@ def _build_stock_meta(settings, video_path, script, idx, niche) -> dict:
     }
 
 
-def _publish_stock(settings, video_path, meta, json_path, segments, niche, video_id, privacy, ret_grades) -> None:
+def _publish_stock(
+    settings, video_path, meta, json_path, segments, niche, video_id, privacy, ret_grades
+) -> None:
     """Publish a stock short via the standard publishing engine."""
     from shorts_clipper.publishers import ClipMetadata, PublishingEngine
 

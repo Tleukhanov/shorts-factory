@@ -16,12 +16,8 @@ class StockSlugTests(unittest.TestCase):
             stock_dir = Path(d) / "stock"
             niche_dir = Path(d) / "niches"
             (niche_dir / niche).mkdir(parents=True)
-            (niche_dir / niche / "pexels_query.txt").write_text(
-                query + "\n", encoding="utf-8"
-            )
-            stock_visual.ensure_pexels_cache(
-                stock_dir, niche, api_key="", niche_dir=niche_dir
-            )
+            (niche_dir / niche / "pexels_query.txt").write_text(query + "\n", encoding="utf-8")
+            stock_visual.ensure_pexels_cache(stock_dir, niche, api_key="", niche_dir=niche_dir)
             subs = [p for p in (stock_dir / "_pexels_cache").iterdir() if p.is_dir()]
             self.assertEqual(len(subs), 1)
             return subs[0].name
@@ -36,12 +32,8 @@ class StockSlugTests(unittest.TestCase):
         self.assertTrue(slug_second)
         self.assertNotEqual(slug_first, slug_second)
         self.assertEqual(self._cache_slug(first, niche="ru-one"), slug_first)
-        self.assertEqual(
-            slug_first, "q-" + hashlib.sha1(first.encode("utf-8")).hexdigest()[:12]
-        )
-        self.assertEqual(
-            slug_second, "q-" + hashlib.sha1(second.encode("utf-8")).hexdigest()[:12]
-        )
+        self.assertEqual(slug_first, "q-" + hashlib.sha1(first.encode("utf-8")).hexdigest()[:12])
+        self.assertEqual(slug_second, "q-" + hashlib.sha1(second.encode("utf-8")).hexdigest()[:12])
 
     def test_latin_slug_unchanged(self):
         """Latin queries keep the exact historical slug."""
@@ -53,9 +45,7 @@ class StockSlugTests(unittest.TestCase):
 class StockBpmTests(unittest.TestCase):
     def _settings_with(self, env_vars):
         """Build Settings with an isolated environment."""
-        with tempfile.NamedTemporaryFile(
-            "w", suffix=".env", delete=False, encoding="utf-8"
-        ) as f:
+        with tempfile.NamedTemporaryFile("w", suffix=".env", delete=False, encoding="utf-8") as f:
             f.write("")
             path = f.name
         try:
@@ -77,9 +67,7 @@ class StockBpmTests(unittest.TestCase):
         self.assertEqual(settings.stock_edit_bpm, 132.0)
         for raw in ("-5", "0", "9999", ""):
             with self.subTest(raw=raw):
-                value = self._settings_with(
-                    {"SHORTS_STOCK_EDIT_BPM": raw}
-                ).stock_edit_bpm
+                value = self._settings_with({"SHORTS_STOCK_EDIT_BPM": raw}).stock_edit_bpm
                 self.assertGreaterEqual(value, 40.0)
                 self.assertLessEqual(value, 300.0)
 
@@ -87,9 +75,7 @@ class StockBpmTests(unittest.TestCase):
 class StockEditFlagTests(unittest.TestCase):
     def _edit_flag(self, raw):
         """Parse SHORTS_STOCK_EDIT for a single raw value."""
-        with tempfile.NamedTemporaryFile(
-            "w", suffix=".env", delete=False, encoding="utf-8"
-        ) as f:
+        with tempfile.NamedTemporaryFile("w", suffix=".env", delete=False, encoding="utf-8") as f:
             f.write("")
             path = f.name
         try:
@@ -141,9 +127,7 @@ class StockFillCutTests(unittest.TestCase):
         self.assertEqual(len(filled), 5)
         self.assertEqual(filled[: len(short)], short)
         self._assert_beat_exact(filled, duration, bpm)
-        self.assertEqual(
-            filled, stock_visual._fill_cut_tail(short, 5, duration, bpm, seed=0)
-        )
+        self.assertEqual(filled, stock_visual._fill_cut_tail(short, 5, duration, bpm, seed=0))
 
     def test_fill_cuts_from_empty_grid(self):
         """Filling from no cuts still lands on whole beats."""

@@ -66,8 +66,9 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         "(rows without / unparseable `publish_ts` always count)"
     )
     filters = payload["filters"]
-    lines.append(f"Filters: platform={filters['platform'] or 'all'}, "
-                 f"niche={filters['niche'] or 'all'}")
+    lines.append(
+        f"Filters: platform={filters['platform'] or 'all'}, niche={filters['niche'] or 'all'}"
+    )
     lines.append("")
     header = [
         "Platform",
@@ -89,9 +90,9 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         values = [
             _fmt(r["platform"], 0) or "-",
             _fmt(r["niche"], 0) or "-",
-f"**{r['retention_grade']}**",
-                _fmt(r["clips"], 0),
-                _fmt(r["published"], 0),
+            f"**{r['retention_grade']}**",
+            _fmt(r["clips"], 0),
+            _fmt(r["published"], 0),
             _fmt(r["publish_rate"]),
             _fmt(r["median_views"]),
             _fmt(r["median_likes"]),

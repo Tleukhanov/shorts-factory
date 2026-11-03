@@ -23,7 +23,12 @@ class SelectEmotionWindowsTests(unittest.TestCase):
     def test_merges_consecutive_above_threshold(self):
         emotion = [0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0]
         windows = select_emotion_windows(
-            emotion, 1.0, min_length=2.0, max_length=3.0, top_n=2, threshold=0.35,
+            emotion,
+            1.0,
+            min_length=2.0,
+            max_length=3.0,
+            top_n=2,
+            threshold=0.35,
         )
         self.assertEqual(len(windows), 2)
         starts = sorted(w.start for w in windows)
@@ -34,7 +39,12 @@ class SelectEmotionWindowsTests(unittest.TestCase):
     def test_drops_clusters_shorter_than_min_length(self):
         emotion = [0.0] * 4 + [1.0, 1.0, 0.0] + [1.0, 1.0, 1.0, 0.0]
         windows = select_emotion_windows(
-            emotion, 1.0, min_length=3.0, max_length=3.0, top_n=5, threshold=0.35,
+            emotion,
+            1.0,
+            min_length=3.0,
+            max_length=3.0,
+            top_n=5,
+            threshold=0.35,
         )
         self.assertEqual(len(windows), 1)
         self.assertEqual(windows[0].start, 7.0)
@@ -43,7 +53,12 @@ class SelectEmotionWindowsTests(unittest.TestCase):
     def test_expands_to_max_length_within_bounds(self):
         emotion = [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         windows = select_emotion_windows(
-            emotion, 1.0, min_length=1.0, max_length=4.0, top_n=1, threshold=0.35,
+            emotion,
+            1.0,
+            min_length=1.0,
+            max_length=4.0,
+            top_n=1,
+            threshold=0.35,
         )
         self.assertEqual(len(windows), 1)
         self.assertEqual(windows[0].start, 1.0)
@@ -53,7 +68,12 @@ class SelectEmotionWindowsTests(unittest.TestCase):
     def test_top_n_returns_highest_emotion_first(self):
         emotion = [1.0, 1.0, 0.0] + [0.0, 0.0, 0.0] + [1.0, 1.0, 1.0, 0.0]
         windows = select_emotion_windows(
-            emotion, 1.0, min_length=2.0, max_length=3.0, top_n=5, threshold=0.35,
+            emotion,
+            1.0,
+            min_length=2.0,
+            max_length=3.0,
+            top_n=5,
+            threshold=0.35,
         )
         self.assertEqual(len(windows), 2)
         self.assertEqual(windows[0].start, 6.0)
@@ -62,7 +82,12 @@ class SelectEmotionWindowsTests(unittest.TestCase):
     def test_windows_are_non_overlapping_after_expansion(self):
         emotion = [0.0, 1.0, 0.0, 1.0, 0.0]
         windows = select_emotion_windows(
-            emotion, 1.0, min_length=1.0, max_length=3.0, top_n=5, threshold=0.35,
+            emotion,
+            1.0,
+            min_length=1.0,
+            max_length=3.0,
+            top_n=5,
+            threshold=0.35,
         )
         windows.sort(key=lambda w: w.start)
         for a, b in zip(windows, windows[1:], strict=False):
@@ -76,7 +101,12 @@ class SelectEmotionWindowsTests(unittest.TestCase):
     def test_returns_plain_clip_windows(self):
         emotion = [1.0, 1.0, 1.0]
         windows = select_emotion_windows(
-            emotion, 1.0, min_length=2.0, max_length=60.0, top_n=1, threshold=0.35,
+            emotion,
+            1.0,
+            min_length=2.0,
+            max_length=60.0,
+            top_n=1,
+            threshold=0.35,
         )
         self.assertEqual(windows[0].start, 0.0)
         self.assertEqual(windows[0].end, 3.0)
@@ -209,9 +239,7 @@ class ComputeExcitementUnitTests(unittest.TestCase):
         tone = np.where(t < 1.0, np.sin(2 * np.pi * 1000 * t), 0.0)
         pcm = (tone * 32767).astype(np.int16)
 
-        with mock.patch(
-            "shorts_clipper.attention.emotion._decode_mono_pcm", return_value=pcm
-        ):
+        with mock.patch("shorts_clipper.attention.emotion._decode_mono_pcm", return_value=pcm):
             result = compute_excitement(Path("dummy.m4a"), window_seconds=1.0)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 3)
@@ -222,17 +250,13 @@ class ComputeExcitementUnitTests(unittest.TestCase):
 
     def test_silent_audio_returns_zeros(self):
         pcm = np.zeros(16000, dtype=np.int16)
-        with mock.patch(
-            "shorts_clipper.attention.emotion._decode_mono_pcm", return_value=pcm
-        ):
+        with mock.patch("shorts_clipper.attention.emotion._decode_mono_pcm", return_value=pcm):
             result = compute_excitement(Path("silent.m4a"), window_seconds=1.0)
         self.assertEqual(len(result), 1)
         self.assertAlmostEqual(result[0], 0.0, places=5)
 
     def test_decode_failure_returns_empty(self):
-        with mock.patch(
-            "shorts_clipper.attention.emotion._decode_mono_pcm", return_value=None
-        ):
+        with mock.patch("shorts_clipper.attention.emotion._decode_mono_pcm", return_value=None):
             result = compute_excitement(Path("bad.m4a"))
         self.assertEqual(result, [])
 
@@ -308,9 +332,7 @@ class RunnerRoutingTests(unittest.TestCase):
         dl_mock.side_effect = _make_audio
 
     def _wire_clip_mocks(self, dc_mock, v_mock):
-        dc_mock.side_effect = lambda *a, **k: (
-            Path(a[1]).write_bytes(b"fake") or Path(a[1])
-        )
+        dc_mock.side_effect = lambda *a, **k: Path(a[1]).write_bytes(b"fake") or Path(a[1])
         v_mock.side_effect = RuntimeError("stop-after-pass1")
 
     def test_energy_mode_calls_windows_and_peaks(self):
@@ -320,17 +342,27 @@ class RunnerRoutingTests(unittest.TestCase):
         self._wire_clip_mocks(mocks["download_clip"], mocks["vertical"])
         mocks["transcribe"].return_value = []
 
-        with mocks["fetch"], mocks["download_audio"], mocks["download_clip"], \
-             mocks["vertical"], mocks["transcribe"], \
-             mock.patch("shorts_clipper.attention.gameplay.windows_and_peaks_from_audio") as mock_wfa, \
-             mock.patch("shorts_clipper.attention.emotion.windows_and_peaks_from_audio") as mock_emo:
+        with (
+            mocks["fetch"],
+            mocks["download_audio"],
+            mocks["download_clip"],
+            mocks["vertical"],
+            mocks["transcribe"],
+            mock.patch(
+                "shorts_clipper.attention.gameplay.windows_and_peaks_from_audio"
+            ) as mock_wfa,
+            mock.patch("shorts_clipper.attention.emotion.windows_and_peaks_from_audio") as mock_emo,
+        ):
             mock_wfa.return_value = [(mock.Mock(start=10.0, end=40.0), 20.0, 0.95)]
             from shorts_clipper.core.exceptions import MediaProcessingError
             from shorts_clipper.pipeline import runner as r
+
             with self.assertRaises(MediaProcessingError):
-                r.run("https://www.youtube.com/watch?v=abc123abc12",
-                      settings=self._base_settings(gameplay_clutch_mode="energy"),
-                      count=1)
+                r.run(
+                    "https://www.youtube.com/watch?v=abc123abc12",
+                    settings=self._base_settings(gameplay_clutch_mode="energy"),
+                    count=1,
+                )
             mock_wfa.assert_called_once()
             mock_emo.assert_not_called()
 
@@ -341,17 +373,27 @@ class RunnerRoutingTests(unittest.TestCase):
         self._wire_clip_mocks(mocks["download_clip"], mocks["vertical"])
         mocks["transcribe"].return_value = []
 
-        with mocks["fetch"], mocks["download_audio"], mocks["download_clip"], \
-             mocks["vertical"], mocks["transcribe"], \
-             mock.patch("shorts_clipper.attention.gameplay.windows_and_peaks_from_audio") as mock_wfa, \
-             mock.patch("shorts_clipper.attention.emotion.windows_and_peaks_from_audio") as mock_emo:
+        with (
+            mocks["fetch"],
+            mocks["download_audio"],
+            mocks["download_clip"],
+            mocks["vertical"],
+            mocks["transcribe"],
+            mock.patch(
+                "shorts_clipper.attention.gameplay.windows_and_peaks_from_audio"
+            ) as mock_wfa,
+            mock.patch("shorts_clipper.attention.emotion.windows_and_peaks_from_audio") as mock_emo,
+        ):
             mock_emo.return_value = [(mock.Mock(start=10.0, end=40.0), 20.0, 0.85)]
             from shorts_clipper.core.exceptions import MediaProcessingError
             from shorts_clipper.pipeline import runner as r
+
             with self.assertRaises(MediaProcessingError):
-                r.run("https://www.youtube.com/watch?v=abc123abc12",
-                      settings=self._base_settings(gameplay_clutch_mode="emotion"),
-                      count=1)
+                r.run(
+                    "https://www.youtube.com/watch?v=abc123abc12",
+                    settings=self._base_settings(gameplay_clutch_mode="emotion"),
+                    count=1,
+                )
             mock_emo.assert_called_once()
             mock_wfa.assert_not_called()
 
@@ -364,16 +406,24 @@ class RunnerRoutingTests(unittest.TestCase):
         self._wire_clip_mocks(mocks["download_clip"], mocks["vertical"])
         mocks["transcribe"].return_value = []
 
-        with mocks["fetch"], mocks["download_audio"], mocks["download_clip"], \
-             mocks["vertical"], mocks["transcribe"], \
-             mock.patch("shorts_clipper.attention.emotion.windows_and_peaks_from_audio") as mock_emo:
+        with (
+            mocks["fetch"],
+            mocks["download_audio"],
+            mocks["download_clip"],
+            mocks["vertical"],
+            mocks["transcribe"],
+            mock.patch("shorts_clipper.attention.emotion.windows_and_peaks_from_audio") as mock_emo,
+        ):
             mock_emo.return_value = [(mock.Mock(start=10.0, end=40.0), 20.0, 0.85)]
             from shorts_clipper.core.exceptions import MediaProcessingError
             from shorts_clipper.pipeline import runner as r
+
             with self.assertRaises(MediaProcessingError):
-                r.run("https://www.youtube.com/watch?v=abc123abc12",
-                      settings=self._base_settings(gameplay_clutch_mode="emotion"),
-                      count=1)
+                r.run(
+                    "https://www.youtube.com/watch?v=abc123abc12",
+                    settings=self._base_settings(gameplay_clutch_mode="emotion"),
+                    count=1,
+                )
             trace = get_run_context().decision_trace
             self.assertEqual(trace.get("clutch_mode"), "emotion")
             self.assertEqual(trace.get("mode"), "gameplay")
@@ -387,16 +437,26 @@ class RunnerRoutingTests(unittest.TestCase):
         self._wire_clip_mocks(mocks["download_clip"], mocks["vertical"])
         mocks["transcribe"].return_value = []
 
-        with mocks["fetch"], mocks["download_audio"], mocks["download_clip"], \
-             mocks["vertical"], mocks["transcribe"], \
-             mock.patch("shorts_clipper.attention.gameplay.windows_and_peaks_from_audio") as mock_wfa:
+        with (
+            mocks["fetch"],
+            mocks["download_audio"],
+            mocks["download_clip"],
+            mocks["vertical"],
+            mocks["transcribe"],
+            mock.patch(
+                "shorts_clipper.attention.gameplay.windows_and_peaks_from_audio"
+            ) as mock_wfa,
+        ):
             mock_wfa.return_value = [(mock.Mock(start=10.0, end=40.0), 20.0, 0.95)]
             from shorts_clipper.core.exceptions import MediaProcessingError
             from shorts_clipper.pipeline import runner as r
+
             with self.assertRaises(MediaProcessingError):
-                r.run("https://www.youtube.com/watch?v=abc123abc12",
-                      settings=self._base_settings(gameplay_clutch_mode="energy"),
-                      count=1)
+                r.run(
+                    "https://www.youtube.com/watch?v=abc123abc12",
+                    settings=self._base_settings(gameplay_clutch_mode="energy"),
+                    count=1,
+                )
             trace = get_run_context().decision_trace
             self.assertEqual(trace.get("clutch_mode"), "energy")
             self.assertEqual(trace.get("mode"), "gameplay")
@@ -423,18 +483,28 @@ class RunnerRoutingTests(unittest.TestCase):
             (w4, 20.0, 0.90),
         ]
 
-        with mocks["fetch"], mocks["download_audio"], mocks["download_clip"], \
-             mocks["vertical"], mocks["transcribe"], \
-             mock.patch("shorts_clipper.attention.gameplay.windows_and_peaks_from_audio") as mock_wfa:
+        with (
+            mocks["fetch"],
+            mocks["download_audio"],
+            mocks["download_clip"],
+            mocks["vertical"],
+            mocks["transcribe"],
+            mock.patch(
+                "shorts_clipper.attention.gameplay.windows_and_peaks_from_audio"
+            ) as mock_wfa,
+        ):
             mock_wfa.return_value = mock_return
             from shorts_clipper.pipeline import runner as r
+
             with self.assertRaises(Exception):  # noqa: B017
-                r.run("https://www.youtube.com/watch?v=abc123abc12",
-                      settings=self._base_settings(
-                          gameplay_clutch_mode="energy",
-                          clip_min_separation=0.0,
-                      ),
-                      count=2)
+                r.run(
+                    "https://www.youtube.com/watch?v=abc123abc12",
+                    settings=self._base_settings(
+                        gameplay_clutch_mode="energy",
+                        clip_min_separation=0.0,
+                    ),
+                    count=2,
+                )
 
             trace = get_run_context().decision_trace
             entries = trace["energy_windows"]
@@ -468,18 +538,26 @@ class RunnerRoutingTests(unittest.TestCase):
             (w_b, 25.0, 0.95),
         ]
 
-        with mocks["fetch"], mocks["download_audio"], mocks["download_clip"], \
-             mocks["vertical"], mocks["transcribe"], \
-             mock.patch("shorts_clipper.attention.emotion.windows_and_peaks_from_audio") as mock_emo:
+        with (
+            mocks["fetch"],
+            mocks["download_audio"],
+            mocks["download_clip"],
+            mocks["vertical"],
+            mocks["transcribe"],
+            mock.patch("shorts_clipper.attention.emotion.windows_and_peaks_from_audio") as mock_emo,
+        ):
             mock_emo.return_value = mock_return
             from shorts_clipper.pipeline import runner as r
+
             with self.assertRaises(Exception):  # noqa: B017
-                r.run("https://www.youtube.com/watch?v=abc123abc12",
-                      settings=self._base_settings(
-                          gameplay_clutch_mode="emotion",
-                          clip_min_separation=0.0,
-                      ),
-                      count=1)
+                r.run(
+                    "https://www.youtube.com/watch?v=abc123abc12",
+                    settings=self._base_settings(
+                        gameplay_clutch_mode="emotion",
+                        clip_min_separation=0.0,
+                    ),
+                    count=1,
+                )
 
             trace = get_run_context().decision_trace
             entries = trace["energy_windows"]
@@ -509,18 +587,28 @@ class RunnerRoutingTests(unittest.TestCase):
             (w_low, 25.0, 0.85),
         ]
 
-        with mocks["fetch"], mocks["download_audio"], mocks["download_clip"], \
-             mocks["vertical"], mocks["transcribe"], \
-             mock.patch("shorts_clipper.attention.gameplay.windows_and_peaks_from_audio") as mock_wfa:
+        with (
+            mocks["fetch"],
+            mocks["download_audio"],
+            mocks["download_clip"],
+            mocks["vertical"],
+            mocks["transcribe"],
+            mock.patch(
+                "shorts_clipper.attention.gameplay.windows_and_peaks_from_audio"
+            ) as mock_wfa,
+        ):
             mock_wfa.return_value = mock_return
             from shorts_clipper.pipeline import runner as r
+
             with self.assertRaises(Exception):  # noqa: B017
-                r.run("https://www.youtube.com/watch?v=abc123abc12",
-                      settings=self._base_settings(
-                          gameplay_clutch_mode="energy",
-                          clip_min_separation=0.0,
-                      ),
-                      count=2)
+                r.run(
+                    "https://www.youtube.com/watch?v=abc123abc12",
+                    settings=self._base_settings(
+                        gameplay_clutch_mode="energy",
+                        clip_min_separation=0.0,
+                    ),
+                    count=2,
+                )
 
             trace = get_run_context().decision_trace
             entries = trace["energy_windows"]

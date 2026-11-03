@@ -55,7 +55,9 @@ class OpeningTests(unittest.TestCase):
     def test_specific_line_wins_over_the_general_one(self):
         """1.e4 c5 must not be reported as a plain open game."""
         self.assertIn("Сицилианская", formats.classify_opening(_game_from(["e4", "c5", "Nf3"])))
-        self.assertIn("королевский", formats.classify_opening(_game_from(["e4", "e5", "Nf3"])).lower())
+        self.assertIn(
+            "королевский", formats.classify_opening(_game_from(["e4", "e5", "Nf3"])).lower()
+        )
 
     def test_none_game(self):
         self.assertIsNone(formats.classify_opening(None))
@@ -68,8 +70,24 @@ class OpeningTests(unittest.TestCase):
     def test_opening_moment_feeds_the_clip_planner_unchanged(self):
         """The whole point: formats must not require editing clip.py."""
         game = _game_from(
-            ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "a6",
-             "Be3", "e5", "Nb3", "Be6", "f3", "Be7"]
+            [
+                "e4",
+                "c5",
+                "Nf3",
+                "d6",
+                "d4",
+                "cxd4",
+                "Nxd4",
+                "Nf6",
+                "Nc3",
+                "a6",
+                "Be3",
+                "e5",
+                "Nb3",
+                "Be6",
+                "f3",
+                "Be7",
+            ]
         )
         from shorts_clipper.chess import analysis
 

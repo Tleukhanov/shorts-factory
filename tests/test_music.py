@@ -26,9 +26,7 @@ class ListTracksTests(unittest.TestCase):
             d = self._make_dirs(Path(tmp))
             tracks = list_tracks(d)
             names = [t.name for t in tracks]
-            self.assertEqual(
-                names, ["a.wav", "b.mp3", "c.m4a", "d.ogg", "e.MP3"]
-            )
+            self.assertEqual(names, ["a.wav", "b.mp3", "c.m4a", "d.ogg", "e.MP3"])
             self.assertNotIn("notes.txt", names)
 
     def test_missing_dir_returns_empty(self):
@@ -146,9 +144,7 @@ class PickTrackTests(unittest.TestCase):
                 d = Path(tmp) / "music"
                 d.mkdir(parents=True)
                 (d / "generated_phonk_loop.wav").write_bytes(b"x")
-                self.assertEqual(
-                    pick_track(d, random.Random(0)), d / "generated_phonk_loop.wav"
-                )
+                self.assertEqual(pick_track(d, random.Random(0)), d / "generated_phonk_loop.wav")
         finally:
             os.environ.pop("SHORTS_ALLOW_PROCEDURAL_MUSIC", None)
 
@@ -177,9 +173,7 @@ class SettingsBgmTests(unittest.TestCase):
         from shorts_clipper.core.settings import _env
 
         fv = self._load(
-            "SHORTS_BGM_MODE=mix50\n"
-            "SHORTS_MUSIC_DIR=D:/tracks\n"
-            "SHORTS_BGM_VOLUME=0.50\n"
+            "SHORTS_BGM_MODE=mix50\nSHORTS_MUSIC_DIR=D:/tracks\nSHORTS_BGM_VOLUME=0.50\n"
         )
         self.assertEqual(_env("SHORTS_BGM_MODE", fv, "off") or "off", "mix50")
         self.assertEqual(_env("SHORTS_MUSIC_DIR", fv, "data/music") or "data/music", "D:/tracks")

@@ -94,7 +94,9 @@ def extract_thumbnail(
             str(output_path),
         ]
         try:
-            fallback_result = subprocess.run(fallback_cmd, capture_output=True, text=True, timeout=600)
+            fallback_result = subprocess.run(
+                fallback_cmd, capture_output=True, text=True, timeout=600
+            )
         except subprocess.TimeoutExpired:
             log.error("FFmpeg thumbnail fallback timed out")
             raise RuntimeError("Thumbnail extraction failed completely.") from None

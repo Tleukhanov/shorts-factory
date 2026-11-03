@@ -105,9 +105,7 @@ class MoverLossMateTests(unittest.TestCase):
 
     def test_white_mating_looks_the_same_as_black_mating(self):
         """The sign must survive ``for_mover`` for both colours."""
-        white_mates = engine.mover_loss_cp(
-            _eval(cp=200), _eval(mate=2), white_to_move=True
-        )
+        white_mates = engine.mover_loss_cp(_eval(cp=200), _eval(mate=2), white_to_move=True)
         black_mates = engine.mover_loss_cp(
             _eval(cp=200), _black_delivers_mate(2), white_to_move=False
         )
@@ -150,9 +148,7 @@ class FindDecisionsMateTests(unittest.TestCase):
                     if dec.mate_after is None or dec.mate_after == 0:
                         continue
                     white_mates = dec.mate_after > 0
-                    mover_mates = (
-                        white_mates if dec.color == "white" else not white_mates
-                    )
+                    mover_mates = white_mates if dec.color == "white" else not white_mates
                     if mover_mates:
                         self.assertFalse(
                             dec.mover_loss_cp >= engine.MATE_CP,

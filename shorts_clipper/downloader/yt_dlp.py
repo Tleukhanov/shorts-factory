@@ -240,9 +240,7 @@ def fetch_subtitles(url: str, work_dir: Path, max_retries: int = 3) -> list[Tran
     cached = dl_cache.subtitle_cache_hit(vid, langs) if vid else None
     if cached is not None:
         log.info("Using cached subtitles for %s (%d segments)", url, len(cached))
-        return [
-            TranscriptSegment(start=s["start"], end=s["end"], text=s["text"]) for s in cached
-        ]
+        return [TranscriptSegment(start=s["start"], end=s["end"], text=s["text"]) for s in cached]
 
     last_err_str = ""
     for attempt in range(1, max_retries + 1):
@@ -363,9 +361,7 @@ def download_audio(
     cached = dl_cache.cache_resolve(vid, "audio", start_time, end_time) if vid else None
     if cached:
         if dl_cache.restore_media(output_path, cached):
-            log.info(
-                "♻️ Using cached audio for %s (section %s-%s)", url, start_time, end_time
-            )
+            log.info("♻️ Using cached audio for %s (section %s-%s)", url, start_time, end_time)
             return output_path
         log.warning("Cached audio existed but could not be restored; re-downloading")
 
@@ -533,9 +529,7 @@ def download_clip(
     return output_path
 
 
-_CC_LICENSE_FILTER = (
-    "license='Creative Commons Attribution license (reuse allowed)'"
-)
+_CC_LICENSE_FILTER = "license='Creative Commons Attribution license (reuse allowed)'"
 
 
 def search_cc_videos(

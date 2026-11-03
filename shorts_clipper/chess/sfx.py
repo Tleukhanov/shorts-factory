@@ -76,9 +76,7 @@ def wrong_buzz(path: str | Path) -> Path:
     saw = 2.0 * ((phase / (2.0 * np.pi)) % 1.0) - 1.0
     square = np.sign(np.sin(phase * 0.5))
     tone = 0.65 * saw + 0.35 * square
-    samples = tone * _envelope(seconds, 0.004, 0.09) * _fade_out(
-        seconds, WRONG_SECONDS
-    )
+    samples = tone * _envelope(seconds, 0.004, 0.09) * _fade_out(seconds, WRONG_SECONDS)
     return _write_wav(path, samples)
 
 
@@ -92,9 +90,7 @@ def correct_ding(path: str | Path) -> Path:
     tone += 0.4 * np.sin(2.0 * np.pi * 1320.0 * seconds)
     # A quiet octave above the root keeps the ding bright on phone speakers.
     tone += 0.12 * np.sin(2.0 * np.pi * 1760.0 * seconds)
-    samples = tone * _envelope(seconds, 0.002, 0.17) * _fade_out(
-        seconds, DING_SECONDS
-    )
+    samples = tone * _envelope(seconds, 0.002, 0.17) * _fade_out(seconds, DING_SECONDS)
     return _write_wav(path, samples)
 
 

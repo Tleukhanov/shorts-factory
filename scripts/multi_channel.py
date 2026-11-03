@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -26,43 +25,82 @@ def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description="Run one factory round per channel (sequential).",
     )
-    p.add_argument("--channels", default=None,
-                   help="Comma-separated channel profile names (e.g. 'alpha,bravo'). "
-                        "Defaults to $SHORTS_CHANNEL, then SHORTS_CHANNEL in .env, "
-                        "then 'alpha'.")
-    p.add_argument("--query", default=None,
-                   help="Search query for VOD discovery "
-                        "(default: '<SHORTS_GAME_NAME> gameplay', e.g. 'cs2 gameplay').")
-    p.add_argument("--providers", default="youtube",
-                   help="Comma-separated provider names (default: 'youtube').")
-    p.add_argument("--count", type=int, default=3, dest="count",
-                   help="Number of clips per video (default: 3).")
-    p.add_argument("--max-videos", type=int, default=3, dest="max_videos",
-                   help="Max VODs to discover per channel (default: 3). 0 = dry-run.")
-    p.add_argument("--limit", type=int, default=None, dest="limit",
-                   help="Alias for --max-videos; overrides it when set.")
-    p.add_argument("--publish", action="store_true",
-                   help="Publish each clip with public visibility after rendering.")
-    p.add_argument("--gameplay", action="store_true",
-                   help="Enable hype/gameplay mode.")
-    p.add_argument("--bgm", choices=["off", "always", "hybrid"], default=None,
-                   help="Background music mode.")
-    p.add_argument("--clutch", choices=["energy", "emotion"], default=None,
-                   help="Gameplay clutch window mode.")
-    p.add_argument("--clips-seconds", type=float, dest="clip_seconds", default=None,
-                   help="Target clip length in seconds.")
-    p.add_argument("--aspect", choices=["vertical", "wide", "both"], default=None,
-                   help="Output aspect ratio.")
-    p.add_argument("--title-variants", choices=["auto", "fixed"], default="auto",
-                   dest="title_variants",
-                   help="Title A/B strategy across channels (default: 'auto'). "
-                        "'auto' sets SHORTS_TITLE_VARIANT to the channel index "
-                        "(channel 0 -> variant 0, channel 1 -> variant 1, ...). "
-                        "'fixed' pins every channel to variant 1 unless "
-                        "--title-variant N is given.")
-    p.add_argument("--title-variant", type=int, default=-1, dest="title_variant",
-                   help="0-based title candidate index used with "
-                        "--title-variants fixed (default: -1 -> variant 1).")
+    p.add_argument(
+        "--channels",
+        default=None,
+        help="Comma-separated channel profile names (e.g. 'alpha,bravo'). "
+        "Defaults to $SHORTS_CHANNEL, then SHORTS_CHANNEL in .env, "
+        "then 'alpha'.",
+    )
+    p.add_argument(
+        "--query",
+        default=None,
+        help="Search query for VOD discovery "
+        "(default: '<SHORTS_GAME_NAME> gameplay', e.g. 'cs2 gameplay').",
+    )
+    p.add_argument(
+        "--providers",
+        default="youtube",
+        help="Comma-separated provider names (default: 'youtube').",
+    )
+    p.add_argument(
+        "--count", type=int, default=3, dest="count", help="Number of clips per video (default: 3)."
+    )
+    p.add_argument(
+        "--max-videos",
+        type=int,
+        default=3,
+        dest="max_videos",
+        help="Max VODs to discover per channel (default: 3). 0 = dry-run.",
+    )
+    p.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        dest="limit",
+        help="Alias for --max-videos; overrides it when set.",
+    )
+    p.add_argument(
+        "--publish",
+        action="store_true",
+        help="Publish each clip with public visibility after rendering.",
+    )
+    p.add_argument("--gameplay", action="store_true", help="Enable hype/gameplay mode.")
+    p.add_argument(
+        "--bgm", choices=["off", "always", "hybrid"], default=None, help="Background music mode."
+    )
+    p.add_argument(
+        "--clutch", choices=["energy", "emotion"], default=None, help="Gameplay clutch window mode."
+    )
+    p.add_argument(
+        "--clips-seconds",
+        type=float,
+        dest="clip_seconds",
+        default=None,
+        help="Target clip length in seconds.",
+    )
+    p.add_argument(
+        "--aspect", choices=["vertical", "wide", "both"], default=None, help="Output aspect ratio."
+    )
+    p.add_argument(
+        "--title-variants",
+        choices=["auto", "fixed"],
+        default="auto",
+        dest="title_variants",
+        help="Title A/B strategy across channels (default: 'auto'). "
+        "'auto' sets SHORTS_TITLE_VARIANT to the channel index "
+        "(channel 0 -> variant 0, channel 1 -> variant 1, ...). "
+        "'fixed' pins every channel to variant 1 unless "
+        "--title-variant N is given.",
+    )
+    p.add_argument(
+        "--title-variant",
+        type=int,
+        default=-1,
+        dest="title_variant",
+        help="0-based title candidate index used with "
+        "--title-variants fixed (default: -1 -> variant 1).",
+    )
     return p
 
 
@@ -125,11 +163,14 @@ def main(argv: list[str] | None = None) -> int:
             settings = replace(settings, **overrides)
 
         try:
-            from shorts_clipper.scout.auto_batch import auto_discover
             from shorts_clipper.pipeline.runner import run
+            from shorts_clipper.scout.auto_batch import auto_discover
 
             discovered = auto_discover(
-                settings, query=args.query, providers=providers, max_results=args.max_videos,
+                settings,
+                query=args.query,
+                providers=providers,
+                max_results=args.max_videos,
             )
             n_discovered = len(discovered)
             n_clipped = 0
@@ -143,7 +184,13 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"  [{idx}/{n_discovered}] {title}")
                     print(f"        {url}")
                     try:
-                        outputs = run(url, settings=settings, count=args.count, upload=args.publish, privacy=privacy)
+                        outputs = run(
+                            url,
+                            settings=settings,
+                            count=args.count,
+                            upload=args.publish,
+                            privacy=privacy,
+                        )
                         out_list = outputs if isinstance(outputs, list) else [outputs]
                         print(f"        -> {len(out_list)} clip(s) generated")
                         n_clipped += 1

@@ -1,4 +1,3 @@
-
 from shorts_clipper.compliance.gate import ComplianceGate, ComplianceVerdict
 from shorts_clipper.core.settings import Settings
 
@@ -121,9 +120,7 @@ def test_verdict_is_dataclass():
 
 
 def test_block_report_written(tmp_path):
-    gate = ComplianceGate(
-        make_settings(compliance_report_dir=str(tmp_path))
-    )
+    gate = ComplianceGate(make_settings(compliance_report_dir=str(tmp_path)))
     v = gate.check("Заработай на ставках", "Быстрый заработок за день")
     assert v.level == "block"
     gate.write_block_report("video.mp4", "Заработай на ставках", "Быстрый заработок за день", v)

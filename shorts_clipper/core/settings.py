@@ -233,9 +233,7 @@ class Settings:
         if scout_max_age_days < 0:
             scout_max_age_days = 90
         try:
-            clip_retention_days = int(
-                _env("SHORTS_CLIP_RETENTION_DAYS", file_values, "30") or "30"
-            )
+            clip_retention_days = int(_env("SHORTS_CLIP_RETENTION_DAYS", file_values, "30") or "30")
         except ValueError:
             clip_retention_days = 30
         if clip_retention_days < 0:
@@ -256,9 +254,7 @@ class Settings:
             publish_interval_seconds = 30
 
         try:
-            factory_daily_cap = int(
-                _env("SHORTS_FACTORY_DAILY_CAP", file_values, "6") or "6"
-            )
+            factory_daily_cap = int(_env("SHORTS_FACTORY_DAILY_CAP", file_values, "6") or "6")
         except ValueError:
             factory_daily_cap = 6
         if factory_daily_cap < 0:
@@ -269,12 +265,11 @@ class Settings:
         ).lower() in {"1", "true", "yes", "on"}
 
         retention_min_grade = (
-            _env("SHORTS_RETENTION_MIN_GRADE", file_values, "B") or "B"
-        ).strip().upper()
+            (_env("SHORTS_RETENTION_MIN_GRADE", file_values, "B") or "B").strip().upper()
+        )
         if retention_min_grade not in {"A", "B", "C", "D"}:
             raise ValueError(
-                f"SHORTS_RETENTION_MIN_GRADE must be one of A/B/C/D, "
-                f"got {retention_min_grade!r}"
+                f"SHORTS_RETENTION_MIN_GRADE must be one of A/B/C/D, got {retention_min_grade!r}"
             )
 
         try:
@@ -286,9 +281,7 @@ class Settings:
         retention_amplify_factor = max(1.0, retention_amplify_factor)
 
         try:
-            title_variant = int(
-                _env("SHORTS_TITLE_VARIANT", file_values, "-1") or "-1"
-            )
+            title_variant = int(_env("SHORTS_TITLE_VARIANT", file_values, "-1") or "-1")
         except ValueError:
             title_variant = -1
 
@@ -309,7 +302,9 @@ class Settings:
                 factory_publish_hour_end = None
 
         game_name = _env("SHORTS_GAME_NAME", file_values, "cs2") or "cs2"
-        game_label = _env("SHORTS_GAME_LABEL", file_values, "Counter-Strike 2") or "Counter-Strike 2"
+        game_label = (
+            _env("SHORTS_GAME_LABEL", file_values, "Counter-Strike 2") or "Counter-Strike 2"
+        )
         game_hashtags_raw = (
             _env("SHORTS_GAME_HASHTAGS", file_values, "#cs2,#counterstrike2")
             or "#cs2,#counterstrike2"
@@ -324,15 +319,19 @@ class Settings:
         )
         publish_platforms = [p.strip() for p in platforms_raw.split(",") if p.strip()]
 
-        affiliate_enabled = (_env("AFFILIATE_ENABLED", file_values, "false") or "false").lower() in {
+        affiliate_enabled = (
+            _env("AFFILIATE_ENABLED", file_values, "false") or "false"
+        ).lower() in {
             "1",
             "true",
             "yes",
             "on",
         }
         affiliate_banner_position = (
-            _env("AFFILIATE_BANNER_POSITION", file_values, "bottom_left") or "bottom_left"
-        ).strip().lower()
+            (_env("AFFILIATE_BANNER_POSITION", file_values, "bottom_left") or "bottom_left")
+            .strip()
+            .lower()
+        )
         if affiliate_banner_position not in {
             "bottom_left",
             "bottom_right",
@@ -376,7 +375,9 @@ class Settings:
             _env("SHORTS_HOOK_BANNER_ENABLED", file_values, "true") or "true"
         ).lower() in {"1", "true", "yes", "on"}
 
-        hook_banner_text = _env("SHORTS_HOOK_BANNER_TEXT", file_values, "WAIT FOR IT…") or "WAIT FOR IT…"
+        hook_banner_text = (
+            _env("SHORTS_HOOK_BANNER_TEXT", file_values, "WAIT FOR IT…") or "WAIT FOR IT…"
+        )
         if not _is_explicit("SHORTS_HOOK_BANNER_TEXT", file_values):
             # The stock banner is an English teaser ("WAIT FOR IT…") and the
             # pipeline publishes in Russian, so burning it by default puts the
@@ -417,9 +418,12 @@ class Settings:
             _env("SHORTS_COMPLIANCE_ENABLED", file_values, "true") or "true"
         ).lower() in {"1", "true", "yes", "on"}
 
-        compliance_llm = (
-            _env("SHORTS_COMPLIANCE_LLM", file_values, "true") or "true"
-        ).lower() in {"1", "true", "yes", "on"}
+        compliance_llm = (_env("SHORTS_COMPLIANCE_LLM", file_values, "true") or "true").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
 
         compliance_finance_strict = (
             _env("SHORTS_COMPLIANCE_FINANCE_STRICT", file_values, "false") or "false"
@@ -440,9 +444,12 @@ class Settings:
         if output_aspect not in {"vertical", "wide", "both"}:
             output_aspect = "vertical"
 
-        gameplay_mode = (
-            _env("SHORTS_GAMEPLAY_MODE", file_values, "false") or "false"
-        ).lower() in {"1", "true", "yes", "on"}
+        gameplay_mode = (_env("SHORTS_GAMEPLAY_MODE", file_values, "false") or "false").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
 
         try:
             gameplay_scan_max_seconds = int(
@@ -454,9 +461,7 @@ class Settings:
             gameplay_scan_max_seconds = 3600
 
         try:
-            gameplay_top_windows = int(
-                _env("SHORTS_GAMEPLAY_TOP_WINDOWS", file_values, "5") or "5"
-            )
+            gameplay_top_windows = int(_env("SHORTS_GAMEPLAY_TOP_WINDOWS", file_values, "5") or "5")
         except ValueError:
             gameplay_top_windows = 5
         if gameplay_top_windows < 0:
@@ -503,9 +508,7 @@ class Settings:
             clip_min_separation = 15.0
 
         try:
-            chess_critical_cp = int(
-                _env("SHORTS_CHESS_CRITICAL_CP", file_values, "200") or "200"
-            )
+            chess_critical_cp = int(_env("SHORTS_CHESS_CRITICAL_CP", file_values, "200") or "200")
         except ValueError:
             chess_critical_cp = 200
         if chess_critical_cp < 0:
@@ -524,13 +527,14 @@ class Settings:
         if youtube_api_key:
             os.environ["YOUTUBE_API_KEY"] = youtube_api_key
 
-        stock_edit = (
-            _env("SHORTS_STOCK_EDIT", file_values, "0") or "0"
-        ).strip().lower() in {"1", "true", "yes", "on"}
+        stock_edit = (_env("SHORTS_STOCK_EDIT", file_values, "0") or "0").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
         try:
-            stock_edit_bpm = float(
-                _env("SHORTS_STOCK_EDIT_BPM", file_values, "132") or "132"
-            )
+            stock_edit_bpm = float(_env("SHORTS_STOCK_EDIT_BPM", file_values, "132") or "132")
         except (ValueError, TypeError):
             stock_edit_bpm = 132.0
         stock_edit_bpm = max(40.0, min(300.0, stock_edit_bpm))
@@ -555,9 +559,7 @@ class Settings:
         # degrade to edge-tts anyway, so an unknown value can never mute a run.
         vo_engine_raw = (_env("SHORTS_VO_ENGINE", file_values, "piper") or "piper").strip().lower()
         vo_engine = "edge" if vo_engine_raw in {"edge", "edge-tts", "edgetts"} else "piper"
-        vo_piper_model = (
-            _env("SHORTS_VO_PIPER_MODEL", file_values, "") or ""
-        ).strip()
+        vo_piper_model = (_env("SHORTS_VO_PIPER_MODEL", file_values, "") or "").strip()
 
         music_tags_raw = _env("SHORTS_MUSIC_TAGS", file_values, ",".join(DEFAULT_MUSIC_TAGS)) or ""
         music_tags = [t.strip() for t in music_tags_raw.split(",") if t.strip()]
@@ -632,24 +634,14 @@ class Settings:
             gameplay_music_forward=gameplay_music_forward,
             clip_min_separation=clip_min_separation,
             bgm_mode=bgm_mode_raw,
-            music_dir=Path(
-                _env("SHORTS_MUSIC_DIR", file_values, "data/music") or "data/music"
-            ),
-            bgm_volume=float(
-                _env("SHORTS_BGM_VOLUME", file_values, "0.30") or "0.30"
-            ),
-            stock_bgm_volume=float(
-                _env("SHORTS_STOCK_BGM_VOLUME", file_values, "0.16") or "0.16"
-            ),
-            phonk_min_tracks=int(
-                _env("SHORTS_PHONK_MIN_TRACKS", file_values, "2") or "2"
-            ),
+            music_dir=Path(_env("SHORTS_MUSIC_DIR", file_values, "data/music") or "data/music"),
+            bgm_volume=float(_env("SHORTS_BGM_VOLUME", file_values, "0.30") or "0.30"),
+            stock_bgm_volume=float(_env("SHORTS_STOCK_BGM_VOLUME", file_values, "0.16") or "0.16"),
+            phonk_min_tracks=int(_env("SHORTS_PHONK_MIN_TRACKS", file_values, "2") or "2"),
             phonk_fetch_max_tracks=int(
                 _env("SHORTS_PHONK_FETCH_MAX_TRACKS", file_values, "6") or "6"
             ),
-            phonk_fetch_pages=int(
-                _env("SHORTS_PHONK_FETCH_PAGES", file_values, "3") or "3"
-            ),
+            phonk_fetch_pages=int(_env("SHORTS_PHONK_FETCH_PAGES", file_values, "3") or "3"),
             pixabay_api_key=_env("SHORTS_PIXABAY_API_KEY", file_values),
             jamendo_api_key=_env("SHORTS_JAMENDO_API_KEY", file_values, "") or "",
             music_tags=music_tags,
@@ -675,11 +667,9 @@ class Settings:
                 _env("SHORTS_PROCESSED_CHECK_ENABLED", file_values, "true") or "true"
             ).lower()
             in {"1", "true", "yes", "on"},
-            vo_enabled=(
-                _env("SHORTS_VO_ENABLED", file_values, "false") or "false"
-            ).lower() in {"1", "true", "yes", "on"},
-            vo_voice=_env("SHORTS_VO_VOICE", file_values, "en-US-GuyNeural")
-            or "en-US-GuyNeural",
+            vo_enabled=(_env("SHORTS_VO_ENABLED", file_values, "false") or "false").lower()
+            in {"1", "true", "yes", "on"},
+            vo_voice=_env("SHORTS_VO_VOICE", file_values, "en-US-GuyNeural") or "en-US-GuyNeural",
             vo_rate=_env("SHORTS_VO_RATE", file_values, "+8%") or "+8%",
             vo_pitch=_env("SHORTS_VO_PITCH", file_values) or "",
             vo_engine=vo_engine,
@@ -705,7 +695,9 @@ class Settings:
             stock_dir=_env("SHORTS_STOCK_DIR", file_values, "data/stock") or "data/stock",
             stock_script_path=_env("SHORTS_STOCK_SCRIPT_PATH", file_values) or None,
             pexels_api_key=_env("SHORTS_PEXELS_API_KEY", file_values) or "",
-            niche=(_env("SHORTS_NICHE", file_values, "self-growth") or "self-growth").strip().lower(),
+            niche=(_env("SHORTS_NICHE", file_values, "self-growth") or "self-growth")
+            .strip()
+            .lower(),
             niche_dir=_env("SHORTS_NICHE_DIR", file_values, "data/niches") or "data/niches",
             stock_edit=stock_edit,
             stock_edit_bpm=stock_edit_bpm,

@@ -187,9 +187,9 @@ def _beat_plies(game, target_ply, **kwargs) -> list[int]:
         pacing._drop_repeats = original
 
     fens = _walk(game)
-    assert [f.fen for f in frames] == [
-        fens[ply] for ply in captured["all"]
-    ], "the beats and the shipped frames disagree"
+    assert [f.fen for f in frames] == [fens[ply] for ply in captured["all"]], (
+        "the beats and the shipped frames disagree"
+    )
     return captured
 
 
@@ -216,21 +216,17 @@ class PacingTests(unittest.TestCase):
 
         self.assertEqual(len(frames), len(holds))
         fens = _walk(self.game)
-        self.assertEqual(
-            frames[0].fen, fens[17 - pacing.LEAD_IN_PLIES], "the run-up moved"
-        )
+        self.assertEqual(frames[0].fen, fens[17 - pacing.LEAD_IN_PLIES], "the run-up moved")
         self.assertEqual(frames[-1].fen, fens[17], "the clip does not end on the move")
         # And the last frames must be the window, not more run-up.
-        self.assertEqual(
-            frames[-1].accent, "bad", "the clip does not end on the reveal"
-        )
+        self.assertEqual(frames[-1].accent, "bad", "the clip does not end on the reveal")
 
         # The last frame must show the last position still worth showing, or
         # the clip either cuts off or spends its tail on a bare king.
         self.assertGreaterEqual(_pieces(frames[-1].fen), pacing.MIN_PIECES_TO_SHOW)
 
     def test_the_clip_opens_a_fixed_distance_before_the_move(self):
-        """"Why does it start at move 1" -- measured back from the move.
+        """ "Why does it start at move 1" -- measured back from the move.
 
         The distance is from the decisive ply, never from the start of the game,
         so it is the same number of plies whether the game is 40 plies or 300.
@@ -282,9 +278,7 @@ class PacingTests(unittest.TestCase):
         reveal is the last thing shown.
         """
         frames, _ = pacing.pace_game(self.game, target_ply=17, slow_window=2)
-        self.assertEqual(
-            frames[-1].accent, "bad", "the clip does not end on the window"
-        )
+        self.assertEqual(frames[-1].accent, "bad", "the clip does not end on the window")
 
         plies = _window_plies(self.game, 17)
         self.assertEqual(max(plies), 17, "the window renders a ply after the move")
@@ -382,7 +376,7 @@ class PacingTests(unittest.TestCase):
         self.assertEqual(
             sum(holds[reveal + 1 :]),
             0.0,
-            f"{sum(holds[reveal + 1:]):.2f}s follows the payoff",
+            f"{sum(holds[reveal + 1 :]):.2f}s follows the payoff",
         )
 
     def test_clip_stops_when_the_board_is_empty(self):
@@ -400,9 +394,7 @@ class PacingTests(unittest.TestCase):
         fens = _walk(game)
         total = len(fens)
         shown = [
-            ply
-            for ply, fen in enumerate(fens)
-            if _placement(fen) == _placement(frames[-1].fen)
+            ply for ply, fen in enumerate(fens) if _placement(fen) == _placement(frames[-1].fen)
         ]
         self.assertLess(max(shown), total - 1, "nothing was trimmed")
         self.assertLess(
@@ -411,9 +403,7 @@ class PacingTests(unittest.TestCase):
             "this game was supposed to be one that plays on to a bare king",
         )
         # The trimmed tail is real runtime the old build was spending.
-        self.assertGreater(
-            total - 1 - max(shown), 5, "nothing worth trimming"
-        )
+        self.assertGreater(total - 1 - max(shown), 5, "nothing worth trimming")
 
     def test_the_run_up_is_one_beat_a_frame(self):
         """The run-up has to move, and it has to stay on the music.
@@ -541,9 +531,7 @@ class PacingTests(unittest.TestCase):
                 self.assertGreaterEqual(
                     seconds, 8.0, f"{plies}-ply game at {target}: {seconds:.2f}s"
                 )
-                self.assertLessEqual(
-                    seconds, 20.0, f"{plies}-ply game at {target}: {seconds:.2f}s"
-                )
+                self.assertLessEqual(seconds, 20.0, f"{plies}-ply game at {target}: {seconds:.2f}s")
 
     def test_hold_floor_is_respected(self):
         for plies, seed in ((40, 3), (114, 4242), (400, 11)):
@@ -604,7 +592,9 @@ class PacingTests(unittest.TestCase):
 
         # Without holds the three fixed beats still apply.
         plain = clip.ChessClipPlan(frames=list(spec) * 3)
-        self.assertAlmostEqual(plain.duration, plain.before_seconds + plain.move_seconds + plain.after_seconds)
+        self.assertAlmostEqual(
+            plain.duration, plain.before_seconds + plain.move_seconds + plain.after_seconds
+        )
         self.assertAlmostEqual(clip._hold_seconds(plain, 1), plain.move_seconds)
 
 

@@ -124,9 +124,7 @@ def test_gate_exception_fails_closed(tmp_path, mock_registry, monkeypatch):
     def _boom(self, *args, **kwargs):
         raise RuntimeError("gate exploded")
 
-    monkeypatch.setattr(
-        "shorts_clipper.compliance.gate.ComplianceGate.check", _boom
-    )
+    monkeypatch.setattr("shorts_clipper.compliance.gate.ComplianceGate.check", _boom)
 
     engine = PublishingEngine(max_retries=1, base_backoff=0)
     video_path = tmp_path / "gate_err.mp4"

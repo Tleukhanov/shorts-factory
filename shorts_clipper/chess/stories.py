@@ -286,13 +286,13 @@ def build_member_story(
     blitz = perfs.get("blitz", {}).get("rating") if isinstance(perfs, dict) else None
     rating = classical or rapid or blitz or info.get("rating") or "?"
 
-    country = info.get("profile", {}).get("country") if isinstance(info.get("profile"), dict) else None
+    country = (
+        info.get("profile", {}).get("country") if isinstance(info.get("profile"), dict) else None
+    )
     country = country or info.get("country", "")
     best = info.get("best_result") or "участник клубных турниров"
 
-    hook_text = templates.get("member_hook", "Игрок недели: {username}").format(
-        username=display
-    )
+    hook_text = templates.get("member_hook", "Игрок недели: {username}").format(username=display)
     context_text = templates.get(
         "member_context",
         "Рейтинг: {rating} · {country}",
@@ -379,9 +379,19 @@ def _render_text_frame(
                     with tempfile.TemporaryDirectory(prefix="story_bg_") as tmp:
                         probe = Path(tmp) / "frame.png"
                         cmd = [
-                            ffmpeg_path(), "-y", "-v", "error",
-                            "-ss", "0.5", "-i", str(bg_path),
-                            "-vframes", "1", "-q:v", "2", str(probe),
+                            ffmpeg_path(),
+                            "-y",
+                            "-v",
+                            "error",
+                            "-ss",
+                            "0.5",
+                            "-i",
+                            str(bg_path),
+                            "-vframes",
+                            "1",
+                            "-q:v",
+                            "2",
+                            str(probe),
                         ]
                         subprocess.run(cmd, capture_output=True, text=True, timeout=60)
                         if probe.is_file():
@@ -467,9 +477,7 @@ def _overlay_avatar(img: Any, presenter_asset: str | Path) -> Any:
         return img
 
     mask = Image.new("L", (_AVATAR_W, _AVATAR_H), 0)
-    ImageDraw.Draw(mask).rounded_rectangle(
-        (0, 0, _AVATAR_W, _AVATAR_H), radius=24, fill=255
-    )
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, _AVATAR_W, _AVATAR_H), radius=24, fill=255)
     av.putalpha(mask)
 
     x = FRAME_W - _AVATAR_W - _AVATAR_MARGIN
@@ -623,11 +631,24 @@ def render_story(
             if voice_wav is not None:
                 voiced = work / "voiced.mp4"
                 cmd = [
-                    ffmpeg_path(), "-y", "-v", "error",
-                    "-i", str(silent_video),
-                    "-i", str(voice_wav),
-                    "-map", "0:v", "-map", "1:a",
-                    "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                    ffmpeg_path(),
+                    "-y",
+                    "-v",
+                    "error",
+                    "-i",
+                    str(silent_video),
+                    "-i",
+                    str(voice_wav),
+                    "-map",
+                    "0:v",
+                    "-map",
+                    "1:a",
+                    "-c:v",
+                    "copy",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "192k",
                     "-shortest",
                     str(voiced),
                 ]
@@ -646,7 +667,10 @@ def render_story(
         if voiced != out:
             subprocess.run(
                 [ffmpeg_path(), "-y", "-v", "error", "-i", str(voiced), "-c", "copy", str(out)],
-                capture_output=True, text=True, timeout=120, check=False,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
             )
         return out if out.is_file() else voiced
     finally:
@@ -672,14 +696,39 @@ def _frames_to_video(
     listing.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     cmd = [
-        ffmpeg_path(), "-y", "-v", "error",
-        "-f", "concat", "-safe", "0", "-i", str(listing),
-        "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
-        "-vf", "format=yuv420p",
-        "-map", "0:v", "-map", "1:a",
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-        "-c:a", "aac", "-b:a", "128k",
-        "-r", str(fps), "-shortest",
+        ffmpeg_path(),
+        "-y",
+        "-v",
+        "error",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        str(listing),
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=channel_layout=stereo:sample_rate=48000",
+        "-vf",
+        "format=yuv420p",
+        "-map",
+        "0:v",
+        "-map",
+        "1:a",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "20",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "128k",
+        "-r",
+        str(fps),
+        "-shortest",
         str(out),
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)

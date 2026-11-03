@@ -33,9 +33,7 @@ SAMPLE_WIDTH = 2  # bytes per int16 sample
 # ---------------------------------------------------------------------------
 
 
-def _decode_mono_pcm(
-    audio_path, max_seconds: int = 0
-) -> np.ndarray | None:
+def _decode_mono_pcm(audio_path, max_seconds: int = 0) -> np.ndarray | None:
     """Decode audio to mono 16-bit PCM via ffmpeg. Returns int16 ndarray or None."""
     try:
         cmd = [
@@ -188,12 +186,7 @@ def compute_excitement(
         # Blended excitement score:
         #   RMS is primary (loud = hype), ZCR captures harsh screams,
         #   centroid + HF pick up high-pitched caster excitement.
-        excitement = (
-            0.35 * rms_n
-            + 0.25 * zcr_n
-            + 0.20 * cent_n
-            + 0.20 * hf_n
-        )
+        excitement = 0.35 * rms_n + 0.25 * zcr_n + 0.20 * cent_n + 0.20 * hf_n
 
         # Clamp to [0, 1]
         excitement = np.clip(excitement, 0.0, 1.0)
@@ -429,13 +422,8 @@ def windows_and_peaks_from_audio(
             top_n=settings.gameplay_top_windows,
         )
         if total_seconds and total_seconds > 0:
-            windows = [
-                w for w in windows if w.start < total_seconds
-            ]
-            windows = [
-                ClipWindow(start=w.start, end=min(w.end, total_seconds))
-                for w in windows
-            ]
+            windows = [w for w in windows if w.start < total_seconds]
+            windows = [ClipWindow(start=w.start, end=min(w.end, total_seconds)) for w in windows]
         peak_data = _cluster_peaks_with_magnitudes(blended, windows)
         return [(w, pd[0], pd[1]) for w, pd in zip(windows, peak_data, strict=True)]
     except Exception as exc:

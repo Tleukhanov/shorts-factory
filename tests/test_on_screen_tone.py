@@ -97,9 +97,7 @@ class DrawtextEscapingTests(unittest.TestCase):
     def test_graph_separators_are_escaped(self):
         for char in (":", ",", ";", "[", "]", "%"):
             with self.subTest(char=char):
-                self.assertEqual(
-                    _escape_drawtext_literal(f"a{char}b"), f"a\\{char}b"
-                )
+                self.assertEqual(_escape_drawtext_literal(f"a{char}b"), f"a\\{char}b")
 
     def test_backslash_and_quote_are_escaped(self):
         self.assertEqual(_escape_drawtext_literal("a\\b"), "a\\\\b")
@@ -215,9 +213,7 @@ class FlashCadenceTests(unittest.TestCase):
         opener, *grid = flashes
         self.assertAlmostEqual(opener["start"], stock_visual._EDIT_FLASH_OPEN_OFFSET, places=3)
         for flash in grid:
-            self.assertAlmostEqual(
-                flash["start"], round(flash["start"] / bar) * bar, places=3
-            )
+            self.assertAlmostEqual(flash["start"], round(flash["start"] / bar) * bar, places=3)
             self.assertLess(flash["start"], flash["end"])
 
     def test_stride_two_cuts_on_screen_coverage(self):

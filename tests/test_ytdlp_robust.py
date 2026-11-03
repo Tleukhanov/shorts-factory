@@ -44,9 +44,7 @@ class VideoIdTests(unittest.TestCase):
         self.assertEqual(yt_dlp.video_id_from_url(f"https://www.youtube.com/shorts/{VID}"), VID)
 
     def test_embed(self):
-        self.assertEqual(
-            yt_dlp.video_id_from_url(f"https://www.youtube.com/embed/{VID}"), VID
-        )
+        self.assertEqual(yt_dlp.video_id_from_url(f"https://www.youtube.com/embed/{VID}"), VID)
 
     def test_no_id(self):
         self.assertIsNone(yt_dlp.video_id_from_url("https://www.youtube.com/"))

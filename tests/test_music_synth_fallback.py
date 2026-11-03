@@ -237,9 +237,7 @@ class PipelineHookTests(unittest.TestCase):
         self.assertIn("ensure_synthesized_track", src)
         # Both live under the same "bgm enabled" guard.
         self.assertIn('if settings.bgm_mode != "off":', src)
-        self.assertLess(
-            src.index("ensure_phonk_tracks"), src.index("ensure_synthesized_track")
-        )
+        self.assertLess(src.index("ensure_phonk_tracks"), src.index("ensure_synthesized_track"))
 
     def test_stock_runner_also_guards_against_silence(self):
         import inspect
@@ -299,9 +297,7 @@ class DarkIndustrialModuleTests(unittest.TestCase):
         self.assertEqual(len(first), int(1.0 * dark_industrial.SAMPLE_RATE))
         # Fixed seed -> byte-identical renders.
         self.assertTrue((first == second).all())
-        self.assertAlmostEqual(
-            float(abs(first).max()), dark_industrial.PEAK, places=6
-        )
+        self.assertAlmostEqual(float(abs(first).max()), dark_industrial.PEAK, places=6)
 
 
 if __name__ == "__main__":

@@ -239,3 +239,8 @@ stock (8), music (5), affiliate (3), metrics, retention, scheduling, scout, mult
 ## Лицензия
 
 MIT. Оригинальный копирайт «Shorts Clipper contributors» в `LICENSE` сохранён, как требует лицензия.
+
+---
+
+**Build. Learn. Understand.**
+© Ералы Тлеуханов · [tleukhanov.me](https://tleukhanov.me)

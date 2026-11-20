@@ -142,14 +142,22 @@ def assemble_documentary(
         music_idx = 2 * len(segments)
         # Kokoro/Silero voice is mono at its own rate; bring everything to
         # 48 kHz stereo before mixing, otherwise amix refuses to initialise.
+        # Music is ducked under the voice: EQ cuts the 2-4 kHz band where the
+        # voice sits, and sidechain compression drops the music further while
+        # speech is present.  This keeps the voice intelligible and the music
+        # from masking it.
         filter_parts.append(
-            f"[{music_idx}:a]aloop=loop=-1:size=2e+09,aformat=sample_rates=48000:channel_layouts=stereo,"
+            f"[{music_idx}:a]aloop=loop=-1:size=2e+09,"
+            f"aformat=sample_rates=48000:channel_layouts=stereo,"
+            f"equalizer=f=3000:width_type=h:width=2000:g=-6,"
             f"volume={music_volume},asetpts=PTS-STARTPTS[mus]"
         )
         filter_parts.append(
             "[aout]aformat=sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[voc]"
         )
-        filter_parts.append("[voc][mus]amix=inputs=2:duration=first:dropout_transition=0[amixed]")
+        filter_parts.append(
+            "[voc][mus]amix=inputs=2:duration=first:dropout_transition=0[amixed]"
+        )
         a_final = "[amixed]"
     else:
         a_final = "[aout]"

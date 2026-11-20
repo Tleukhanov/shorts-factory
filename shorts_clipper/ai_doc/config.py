@@ -20,12 +20,12 @@ class AiDocumentaryConfig:
     image_height: int = 1080
     fps: int = 24
     crossfade: float = 0.8
-    music_volume: float = 0.10
+    music_volume: float = 0.05
     voice_volume: float = 1.0
     burn_subtitles: bool = True
     # Painterly style suffix used when fetching or generating images.
     style_suffix: str = "old master oil painting, dark moody chiaroscuro, cinematic composition"
-    music_path: str = "data/music/dark_industrial_loop.wav"
+    music_path: str = "data/music/tense_ambient.wav"
 
     @classmethod
     def from_file(cls, path: str | Path) -> AiDocumentaryConfig:

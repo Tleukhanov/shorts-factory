@@ -111,9 +111,12 @@ def assemble_documentary(
     inputs: list[str] = []
     filter_parts: list[str] = []
     for i, seg in enumerate(segments):
-        img = image_dir / seg.image
+        if seg.image:
+            img = image_dir / seg.image
+        else:
+            img = image_dir / f"seg_{i:03d}.png"
         if not img.is_file():
-            log.error("missing image: %s", img)
+            log.error("missing image: %s (provide image or run Colab generator)", img)
             return None
         inputs += ["-loop", "1", "-framerate", "24", "-t", f"{durations[i]:.3f}", "-i", str(img)]
         inputs += ["-i", str(audio_files[i])]

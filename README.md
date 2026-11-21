@@ -144,6 +144,23 @@ shorts-clipper chess --format story data/stories/member_week_1.json --story-temp
 - Поддерживает кастомные JSON-сценарии для «участник недели», «закулисье» и т.д.
 - Placeholder аватара в `assets/presenter/placeholder.png` — замените на фото/видео ведущего.
 
+### AI-документалка (бесплатно)
+
+```bash
+# 1. Сгенерировать картинки (Colab/Kaggle или локально)
+python scripts/generate_images.py docs/scenarios/machiavelli_001.md --out-dir data/ai_doc/machiavelli_001/images
+
+# 2. Собрать видео
+python scripts/make_ai_documentary.py docs/scenarios/machiavelli_001.md \
+  --image-dir data/ai_doc/machiavelli_001/images \
+  --out-dir data/ai_doc/machiavelli_001/out
+```
+
+- Сценарий в markdown: заголовки `## Segment N`, поля `prompt`/`image`, `voice`, `subtitle`.
+- Картинки через Stable Diffusion (Colab-ноутбук: `notebooks/generate_images.ipynb`).
+- Голос: Kokoro (EN) / Silero (RU) — бесплатно, локально.
+- Сборка: Ken Burns + crossfade + музыка + субтитры → MP4.
+
 ---
 
 ## Stock-режим (оригинальные шорты)

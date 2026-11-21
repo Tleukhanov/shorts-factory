@@ -41,14 +41,14 @@ MUSIC_VOLUME = 0.55
 # sit long enough to be read.  Beat snapping re-times all of them when a track
 # is available, so these are the shape of the edit, not its final duration.
 HOOK_SECONDS = 2.4
-WRONG_SECONDS = 1.2
+WRONG_SECONDS = 0.9
 # A short tease between the traps and the answer, the reference Short's
 # "maybe try subscribing ;)" beat: a still of the same position that delays the
 # reveal just long enough to be felt.
 TEASE_SECONDS = 0.9
-ANSWER_SECONDS = 1.8
+ANSWER_SECONDS = 1.6
 SLIDE_STEPS = 5
-SLIDE_SECONDS = 0.07
+SLIDE_SECONDS = 0.03
 LANDING_SECONDS = 1.1
 FINAL_SECONDS = 2.6
 CTA_SECONDS = 2.8
@@ -68,7 +68,7 @@ class DramaConfig:
     hashtags: tuple[str, ...] = ("#шахматы", "#мат", "#senpai", "#shorts")
     music_path: str = "data/music/phonk.wav"
     beat_sync: bool = True
-    max_wrong_moves: int = 2
+    max_wrong_moves: int = 1
     # The hook has to name the puzzle's actual task: a mate puzzle and an endgame
     # zugzwang are different promises, and the old single label claimed "mate"
     # over both.  ``hook_label`` stays as a legacy override so old config files
@@ -93,7 +93,9 @@ class DramaConfig:
     # Legacy single answer label.  Kept so old config files still load; when
     # ``answer_labels`` is empty this is the only label used.
     answer_label: str = "ВОТ ОТВЕТ"
-    tease_label: str = "МОЖЕТ, В КЛУБ? ;)"
+    # Empty by default: the mid-video "maybe join the club" card confused the
+    # first reviewers and the end CTA already does that job.
+    tease_label: str = ""
     final_mate_label: str = "МАТ!"
     final_win_label: str = "ХОД НАЙДЕН"
     cta_top: str = "Вступай в клуб Senpai"
@@ -224,10 +226,11 @@ def find_wrong_moves(
     out: list[WrongMove] = []
     # The curated answer must never appear as a red "wrong move": on a puzzle
     # where the engine's top line differs from the published solution, the raw
-    # runner-up list can contain it, and a red arrow on the correct move is a
-    # clip that contradicts itself.
+    # list can put the answer first *or* second, and a red arrow on the correct
+    # move is a clip that contradicts itself.  Filter by the answer set instead
+    # of blindly dropping lines[0].
     answers = set(puzzle.solution_moves)
-    for uci, evaluation in lines[1 : count + 1]:
+    for uci, evaluation in lines:
         if uci in answers:
             continue
         try:
@@ -243,6 +246,8 @@ def find_wrong_moves(
                 eval_cp=int(evaluation.cp),
             )
         )
+        if len(out) >= count:
+            break
     return out
 
 
@@ -289,25 +294,30 @@ def _slide_frames(
     board_style: str,
     zoom: float = 1.0,
 ) -> list[FrameSpec]:
-    """Five interpolated frames for one move, so the piece slides in.
+    """A handful of interpolated frames for one move, so the piece slides in.
 
-    The camera punch is ramped over the slide instead of being switched on at
-    the landing: by the time the move arrives the frame is already closing in,
-    which is what reads as a punch rather than a jump cut to a static crop.
+    The motion is ease-out: most of the distance is covered in the first half of
+    the slide, which reads as a flick rather than a slow float.  The camera
+    punch is ramped over the same frames instead of being switched on at the
+    landing, so the frame is already closing in when the move arrives.
     """
-    return [
-        FrameSpec(
-            fen=fen,
-            top_text="",
-            bottom_text=san,
-            accent="neutral",
-            moving=(piece_symbol, src, dst, step / SLIDE_STEPS),
-            hidden_squares=hidden,
-            board_style=board_style,
-            zoom=1.0 + (zoom - 1.0) * step / SLIDE_STEPS,
+    frames: list[FrameSpec] = []
+    for step in range(1, SLIDE_STEPS + 1):
+        t = step / SLIDE_STEPS
+        eased = 1.0 - (1.0 - t) ** 2
+        frames.append(
+            FrameSpec(
+                fen=fen,
+                top_text="",
+                bottom_text=san,
+                accent="neutral",
+                moving=(piece_symbol, src, dst, eased),
+                hidden_squares=hidden,
+                board_style=board_style,
+                zoom=1.0 + (zoom - 1.0) * eased,
+            )
         )
-        for step in range(1, SLIDE_STEPS + 1)
-    ]
+    return frames
 
 
 def _snap_blocks(frames: list[FrameSpec], holds: list[float], grid) -> list[float]:
@@ -426,7 +436,7 @@ def plan_drama(
                 dst=dst,
                 hidden=hidden,
                 board_style=cfg.board_style,
-                zoom=1.06,
+                zoom=1.0,
             )
         )
         holds.extend([SLIDE_SECONDS] * SLIDE_STEPS)
@@ -450,7 +460,7 @@ def plan_drama(
                 headline=label,
                 headline_color="bad",
                 badge=(dst, "blunder"),
-                zoom=1.06,
+                zoom=1.0,
             )
         )
         wrong_frame_indices.append(len(frames) - 1)
@@ -471,22 +481,22 @@ def plan_drama(
     best_src = chess.square_name(best_move.from_square)
     best_dst = chess.square_name(best_move.to_square)
 
-    # Beat 2.5: the tease.  The position is unchanged and there is no arrow, so
-    # the viewer's eye stays on the board while the headline withholds the
-    # answer for one short beat.
-    frames.append(
-        FrameSpec(
-            fen=start_fen,
-            top_text="",
-            bottom_text="",
-            accent="neutral",
-            board_style=cfg.board_style,
-            headline=cfg.tease_label,
-            headline_color="bad",
-            zoom=1.0,
+    # Beat 2.5: the tease.  Optional: an empty label skips the card entirely,
+    # which is the default because a mid-video club message reads as an ad.
+    if cfg.tease_label:
+        frames.append(
+            FrameSpec(
+                fen=start_fen,
+                top_text="",
+                bottom_text="",
+                accent="neutral",
+                board_style=cfg.board_style,
+                headline=cfg.tease_label,
+                headline_color="bad",
+                zoom=1.0,
+            )
         )
-    )
-    holds.append(TEASE_SECONDS)
+        holds.append(TEASE_SECONDS)
 
     # Beat 3: the answer, board *before* the move and a green arrow.
     frames.append(
@@ -541,7 +551,7 @@ def plan_drama(
                 dst=dst,
                 hidden=hidden,
                 board_style=cfg.board_style,
-                zoom=1.02,
+                zoom=1.0,
             )
         )
         holds.extend([SLIDE_SECONDS] * SLIDE_STEPS)
@@ -575,7 +585,7 @@ def plan_drama(
                 board_style=cfg.board_style,
                 arrow_color="good",
                 badge=badge,
-                zoom=1.02,
+                zoom=1.0,
             )
         )
         holds.append(LANDING_SECONDS)
@@ -596,7 +606,7 @@ def plan_drama(
             headline=final_headline,
             headline_color="good",
             badge=(mate_king_square, "mate") if is_mate and mate_king_square else None,
-            zoom=1.05,
+            zoom=1.0,
         )
     )
     mate_frame_index = len(frames) - 1 if is_mate else -1
@@ -689,7 +699,11 @@ def _sfx_events(plan: DramaRenderPlan) -> list[tuple[str, float]]:
 
     for index in plan.wrong_frame_indices:
         add("wrong_buzz", index)
+        add("whoosh", index - SLIDE_STEPS)
     add("correct_ding", plan.answer_frame_index)
+    # A whoosh under the answer covers the hard cut from the wrong move back to
+    # the starting position; without it the reset reads as a glitch.
+    add("whoosh", plan.answer_frame_index)
     for index in plan.move_block_starts:
         add("whoosh", index)
     if plan.is_mate:

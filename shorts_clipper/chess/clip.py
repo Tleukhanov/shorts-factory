@@ -382,7 +382,11 @@ def render_clip(
             for i, spec in enumerate(plan.frames):
                 png = render_frame(spec, work / f"frame_{i}.png")
                 lines.append(f"file '{png.as_posix()}'")
-                lines.append(f"duration {max(0.08, float(_hold_seconds(plan, i))):.3f}")
+                hold = float(_hold_seconds(plan, i))
+                # A slide frame is one video frame, not an 80 ms slideshow;
+                # the 80 ms floor is for narrative beats, not animation.
+                floor = (1.0 / fps) if spec.moving is not None else 0.08
+                lines.append(f"duration {max(floor, hold):.3f}")
             lines.append(f"file '{(work / f'frame_{len(plan.frames) - 1}.png').as_posix()}'")
             listing.write_text("\n".join(lines) + "\n", encoding="utf-8")
             cmd = [

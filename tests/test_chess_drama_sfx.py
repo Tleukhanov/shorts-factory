@@ -119,9 +119,9 @@ def test_plan_sets_punch_on_the_decisive_beats(sample_puzzle):
     frames = plan.clip_plan.frames
 
     assert frames[0].zoom == 1.0
-    assert all(frames[index].zoom == 1.06 for index in plan.wrong_frame_indices)
+    assert all(frames[index].zoom == 1.0 for index in plan.wrong_frame_indices)
     assert frames[plan.answer_frame_index].zoom == 1.08
-    assert frames[plan.mate_frame_index].zoom == 1.05
+    assert frames[plan.mate_frame_index].zoom == 1.0
     assert frames[-1].cta is not None and frames[-1].zoom == 1.0
 
     landing_zooms = [
@@ -131,8 +131,7 @@ def test_plan_sets_punch_on_the_decisive_beats(sample_puzzle):
         and frames[index + drama.SLIDE_STEPS].headline is None
     ]
     assert landing_zooms
-    assert set(landing_zooms) <= {1.0, 1.02}
-    assert 1.02 in landing_zooms
+    assert set(landing_zooms) == {1.0}
 
 
 # --------------------------------------------------------------------------

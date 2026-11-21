@@ -38,8 +38,16 @@ def sample_puzzle(tmp_path_factory):
 
 
 @pytest.fixture
-def drama_cfg():
+def repo_cfg():
     return drama.DramaConfig.from_file(CONFIG)
+
+
+@pytest.fixture
+def drama_cfg(repo_cfg):
+    # The repo default is one wrong move; these tests exercise the two-beat
+    # shape as well, so give them both.
+    cfg = dataclasses.replace(repo_cfg, max_wrong_moves=2)
+    return cfg
 
 
 def _wrong_moves(puzzle, count=2):
@@ -78,23 +86,23 @@ def _last_destination(puzzle) -> str:
 # --------------------------------------------------------------------------
 
 
-def test_config_loads_the_repo_file(drama_cfg):
-    assert drama_cfg.club_name
-    assert drama_cfg.hook_label_mate == "НАЙДИ МАТ"
-    assert drama_cfg.hook_label_endgame == "ВЫИГРАЙ ЭНДШПИЛЬ"
-    assert drama_cfg.hook_label_tactic == "НАЙДИ ЛУЧШИЙ ХОД"
-    assert drama_cfg.answer_label == "ВОТ ОТВЕТ"
-    assert drama_cfg.answer_labels[:1] == ["ВОТ ОТВЕТ"]
-    assert len(drama_cfg.answer_labels) >= 3
-    assert "ДАЖЕ БЛИЗКО НЕ СТОЯЛ" in drama_cfg.wrong_labels
-    assert drama_cfg.tease_label
-    assert drama_cfg.final_mate_label == "МАТ!"
-    assert drama_cfg.final_win_label == "ХОД НАЙДЕН"
-    assert drama_cfg.board_style == "mono"
-    assert drama_cfg.beat_sync is True
-    assert drama_cfg.max_wrong_moves >= 1
-    assert isinstance(drama_cfg.hashtags, tuple)
-    assert isinstance(drama_cfg.wrong_labels, list)
+def test_config_loads_the_repo_file(repo_cfg):
+    assert repo_cfg.club_name
+    assert repo_cfg.hook_label_mate == "НАЙДИ МАТ"
+    assert repo_cfg.hook_label_endgame == "ВЫИГРАЙ ЭНДШПИЛЬ"
+    assert repo_cfg.hook_label_tactic == "НАЙДИ ЛУЧШИЙ ХОД"
+    assert repo_cfg.answer_label == "ВОТ ОТВЕТ"
+    assert repo_cfg.answer_labels[:1] == ["ВОТ ОТВЕТ"]
+    assert len(repo_cfg.answer_labels) >= 3
+    assert "ДАЖЕ БЛИЗКО НЕ СТОЯЛ" in repo_cfg.wrong_labels
+    assert not repo_cfg.tease_label
+    assert repo_cfg.final_mate_label == "МАТ!"
+    assert repo_cfg.final_win_label == "ХОД НАЙДЕН"
+    assert repo_cfg.board_style == "mono"
+    assert repo_cfg.beat_sync is True
+    assert repo_cfg.max_wrong_moves == 1
+    assert isinstance(repo_cfg.hashtags, tuple)
+    assert isinstance(repo_cfg.wrong_labels, list)
 
 
 def test_legacy_single_answer_label_config_still_wins(tmp_path):
@@ -113,7 +121,8 @@ def test_missing_config_falls_back_to_defaults(tmp_path):
     assert cfg.music_path.endswith(".wav")
     assert len(cfg.answer_labels) >= 3
     assert len(cfg.wrong_labels) >= 4
-    assert cfg.tease_label
+    assert not cfg.tease_label
+    assert cfg.max_wrong_moves == 1
     assert cfg.final_mate_label == "МАТ!"
     assert cfg.final_win_label == "ХОД НАЙДЕН"
 
@@ -165,25 +174,30 @@ def test_music_resolution_prefers_config_then_first_track(tmp_path):
 # --------------------------------------------------------------------------
 
 
-def test_find_wrong_moves_drops_the_best_move(sample_puzzle, monkeypatch):
+def test_find_wrong_moves_skips_the_answer_not_the_engine_top(sample_puzzle, monkeypatch):
     import chess
 
     board_ = chess.Board(sample_puzzle.puzzle_fen())
     legal = list(board_.legal_moves)
-    best, second, third = legal[0], legal[1], legal[2]
+    answer = chess.Move.from_uci(sample_puzzle.solution_moves[0])
+    others = [move for move in legal if move != answer]
+    first, second = others[0], others[1]
 
     def fake_top_moves(fen, count=2, depth_override=None):
         return [
-            (best.uci(), Eval(cp=500)),
+            (first.uci(), Eval(cp=500)),
             (second.uci(), Eval(cp=120)),
-            (third.uci(), Eval(cp=-40)),
+            (answer.uci(), Eval(cp=-40)),
         ]
 
     monkeypatch.setattr(drama.engine, "top_moves", fake_top_moves)
     got = drama.find_wrong_moves(sample_puzzle, count=2)
-    assert [wrong.uci for wrong in got] == [second.uci(), third.uci()]
-    assert [wrong.eval_cp for wrong in got] == [120, -40]
+    # The engine's top line is a plausible wrong move; only the published
+    # answer is excluded.
+    assert [wrong.uci for wrong in got] == [first.uci(), second.uci()]
+    assert [wrong.eval_cp for wrong in got] == [500, 120]
     assert all(wrong.san for wrong in got)
+    assert answer.uci() not in {wrong.uci for wrong in got}
 
 
 def test_find_wrong_moves_without_an_engine_is_empty(sample_puzzle, monkeypatch):
@@ -206,7 +220,9 @@ def test_the_curated_answer_is_never_labelled_wrong(sample_puzzle, monkeypatch):
         ]
 
     monkeypatch.setattr(drama.engine, "top_moves", fake_top_moves)
-    assert drama.find_wrong_moves(sample_puzzle, count=2) == []
+    got = drama.find_wrong_moves(sample_puzzle, count=2)
+    assert [wrong.uci for wrong in got] == [other.uci()]
+    assert answer not in {wrong.uci for wrong in got}
 
 
 # --------------------------------------------------------------------------
@@ -284,7 +300,8 @@ def test_plan_skips_wrong_beats_without_an_engine(sample_puzzle, drama_cfg):
     headlines = [frame.headline for frame in plan.clip_plan.frames]
     assert drama._hook_label(sample_puzzle, drama_cfg) in headlines
     assert drama._answer_label(sample_puzzle, drama_cfg) in headlines
-    assert drama_cfg.tease_label in headlines
+    if drama_cfg.tease_label:
+        assert drama_cfg.tease_label in headlines
     assert drama_cfg.final_mate_label in headlines
     assert plan.wrong_frame_indices == ()
 
@@ -343,19 +360,24 @@ def test_badges_mark_wrong_answer_line_and_mate(sample_puzzle, drama_cfg):
     assert mate.annotation is None
 
 
-def test_tease_frame_precedes_the_answer(sample_puzzle, drama_cfg):
+def test_tease_is_optional(sample_puzzle, drama_cfg):
+    # Default is no mid-video club card: it reads as an ad.
     plan = drama.plan_drama(sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg)
-    frames = plan.clip_plan.frames
-    answer_index = plan.answer_frame_index
+    assert all(frame.headline != drama_cfg.tease_label for frame in plan.clip_plan.frames)
+
+    teased_cfg = dataclasses.replace(drama_cfg, tease_label="МОЖЕТ, В КЛУБ? ;)")
+    teased = drama.plan_drama(sample_puzzle, _wrong_moves(sample_puzzle), teased_cfg)
+    frames = teased.clip_plan.frames
+    answer_index = teased.answer_frame_index
     tease = frames[answer_index - 1]
 
-    assert tease.headline == drama_cfg.tease_label
+    assert tease.headline == teased_cfg.tease_label
     assert tease.headline_color == "bad"
     assert tease.arrow is None
     assert tease.badge is None
     assert not tease.highlight_squares
     assert tease.fen == sample_puzzle.puzzle_fen()
-    assert plan.clip_plan.holds[answer_index - 1] == pytest.approx(drama.TEASE_SECONDS)
+    assert teased.clip_plan.holds[answer_index - 1] == pytest.approx(drama.TEASE_SECONDS)
 
 
 def test_labels_rotate_through_their_banks(sample_puzzle, drama_cfg):
@@ -389,23 +411,23 @@ def test_music_volume_is_clearly_audible():
     assert drama.MUSIC_VOLUME >= 0.45
 
 
-def test_zoom_punch_ramps_over_the_slides(sample_puzzle, drama_cfg):
+def test_only_the_brilliant_answer_punches(sample_puzzle, drama_cfg):
     plan = drama.plan_drama(sample_puzzle, _wrong_moves(sample_puzzle), drama_cfg)
     frames = plan.clip_plan.frames
 
+    # The slow zoom ramp on every slide was nauseating; only the !! answer
+    # keeps a punch now.
     for index in plan.wrong_frame_indices:
-        zooms = [frame.zoom for frame in frames[index - drama.SLIDE_STEPS : index]]
-        assert zooms == sorted(zooms)
-        assert zooms[0] < zooms[-1]
-        assert frames[index].zoom == zooms[-1] == 1.06
+        assert all(frame.zoom == 1.0 for frame in frames[index - drama.SLIDE_STEPS : index])
+        assert frames[index].zoom == 1.0
+
+    assert plan.answer_frame_index >= 0
+    assert frames[plan.answer_frame_index].zoom == 1.08
 
     assert plan.move_block_starts
     for start in plan.move_block_starts:
-        slides = frames[start : start + drama.SLIDE_STEPS]
-        zooms = [frame.zoom for frame in slides]
-        assert zooms == sorted(zooms)
-        assert zooms[0] < zooms[-1]
-        assert frames[start + drama.SLIDE_STEPS].zoom == zooms[-1] == 1.02
+        assert all(frame.zoom == 1.0 for frame in frames[start : start + drama.SLIDE_STEPS])
+        assert frames[start + drama.SLIDE_STEPS].zoom == 1.0
 
 
 def test_beat_sync_snaps_move_blocks(sample_puzzle, drama_cfg, tmp_path, monkeypatch):

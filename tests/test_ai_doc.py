@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from shorts_clipper.ai_doc.config import AiDocumentaryConfig
 from shorts_clipper.ai_doc.scenario import load_scenario, parse_markdown_scenario
 
@@ -42,9 +40,26 @@ def test_load_scenario_roundtrip(tmp_path):
     assert len(segments) == 2
 
 
-def test_parse_rejects_empty_scenario():
-    with pytest.raises(ValueError):
-        parse_markdown_scenario("no headings here")
+SAMPLE_PROMPT = """
+---
+title: Test Prompt
+---
+
+## Segment 1
+prompt: a dark renaissance palace
+voice: Power is not loud.
+subtitle: Power quiet.
+"""
+
+
+def test_parse_prompt_scenario():
+    meta, segments = parse_markdown_scenario(SAMPLE_PROMPT)
+    assert meta["title"] == "Test Prompt"
+    assert len(segments) == 1
+    assert segments[0].prompt == "a dark renaissance palace"
+    assert segments[0].has_prompt is True
+    assert segments[0].image == ""
+    assert segments[0].image_name == ""
 
 
 def test_config_defaults():

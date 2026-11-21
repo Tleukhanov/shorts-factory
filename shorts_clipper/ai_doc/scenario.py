@@ -8,13 +8,9 @@ Format:
 
     ## Segment 1 — The Quiet Man
     image: b9bfa94617.jpg        # filename in the image directory
+    prompt: "dark renaissance palace, prince on throne"  # OR prompt for SD
     voice: "Most people mistake power for noise. They think the loudest voice …"
     subtitle: Power is not in loudness.
-
-    ## Segment 2 — Step 1: Become Hard to Replace
-    image: b6ec943382.jpg
-    voice: "Machiavelli never wrote it as … But read the Prince closely …"
-    subtitle: Step 1 — Become indispensable.
 """
 
 from __future__ import annotations
@@ -27,17 +23,27 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 _FRONT_MATTER = re.compile(r"^\s*---\s*\n(.*?)\n---\s*\n", re.DOTALL)
-_FIELD = re.compile(r"^(image|voice|subtitle|music)\s*:\s*(.+?)\s*$", re.IGNORECASE)
+_FIELD = re.compile(r"^(image|prompt|voice|subtitle|music)\s*:\s*(.+?)\s*$", re.IGNORECASE)
 _HEADING = re.compile(r"^##\s+(?:Segment\s*)?\d*\s*[-—:]?\s*(.+?)\s*$", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
 class Segment:
     title: str
-    image: str
-    voice: str
-    subtitle: str
+    image: str = ""
+    prompt: str = ""
+    voice: str = ""
+    subtitle: str = ""
     music: str | None = None
+
+    @property
+    def image_name(self) -> str:
+        """Return the image filename. If not set, derive from index."""
+        return self.image or ""
+
+    @property
+    def has_prompt(self) -> bool:
+        return bool(self.prompt.strip())
 
 
 def parse_markdown_scenario(text: str) -> tuple[dict, list[Segment]]:
@@ -46,7 +52,7 @@ def parse_markdown_scenario(text: str) -> tuple[dict, list[Segment]]:
     m = _FRONT_MATTER.match(text)
     body = text
     if m:
-        body = text[m.end() :]
+        body = text[m.end():]
         for line in m.group(1).splitlines():
             if ":" in line:
                 key, value = line.split(":", 1)
@@ -60,13 +66,17 @@ def parse_markdown_scenario(text: str) -> tuple[dict, list[Segment]]:
             return
         image = current.get("image", "").strip()
         voice = current.get("voice", "").strip()
-        if not image or not voice:
+        if not image and not current.get("prompt", "").strip():
             log.warning("skipping incomplete segment: %s", current.get("title", "<unnamed>"))
+            return
+        if not voice:
+            log.warning("skipping segment without voice: %s", current.get("title", "<unnamed>"))
             return
         segments.append(
             Segment(
                 title=current.get("title", "").strip(),
                 image=image,
+                prompt=current.get("prompt", "").strip(),
                 voice=voice,
                 subtitle=current.get("subtitle", "").strip(),
                 music=current.get("music") or None,

@@ -149,7 +149,6 @@ def assemble_documentary(
         filter_parts.append(
             f"[{music_idx}:a]aloop=loop=-1:size=2e+09,"
             f"aformat=sample_rates=48000:channel_layouts=stereo,"
-            f"equalizer=f=3000:width_type=h:width=2000:g=-6,"
             f"volume={music_volume},asetpts=PTS-STARTPTS[mus]"
         )
         filter_parts.append(

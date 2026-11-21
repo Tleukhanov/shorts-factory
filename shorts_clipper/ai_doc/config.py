@@ -20,7 +20,7 @@ class AiDocumentaryConfig:
     image_height: int = 1080
     fps: int = 24
     crossfade: float = 0.8
-    music_volume: float = 0.05
+    music_volume: float = 0.20
     voice_volume: float = 1.0
     burn_subtitles: bool = True
     # Painterly style suffix used when fetching or generating images.

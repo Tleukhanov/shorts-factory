@@ -9,8 +9,6 @@ no aggressive kicks.  Original synthesized material, no external samples.
 from __future__ import annotations
 
 import argparse
-import math
-import struct
 import sys
 import wave
 from pathlib import Path
@@ -57,7 +55,6 @@ def _tension(n: int, sr: int) -> np.ndarray:
 
 def _heartbeat(n: int, sr: int) -> np.ndarray:
     """Very quiet heartbeat-like pulse every 4 beats."""
-    t = np.arange(n) / sr
     beat_len = int(BEAT * sr)
     pulse = np.zeros(n)
     for i in range(0, n // (4 * beat_len)):

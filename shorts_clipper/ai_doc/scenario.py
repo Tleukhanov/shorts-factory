@@ -52,7 +52,7 @@ def parse_markdown_scenario(text: str) -> tuple[dict, list[Segment]]:
     m = _FRONT_MATTER.match(text)
     body = text
     if m:
-        body = text[m.end():]
+        body = text[m.end() :]
         for line in m.group(1).splitlines():
             if ":" in line:
                 key, value = line.split(":", 1)

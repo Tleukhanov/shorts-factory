@@ -157,9 +157,7 @@ def assemble_documentary(
         filter_parts.append(
             "[aout]aformat=sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[voc]"
         )
-        filter_parts.append(
-            "[voc][mus]amix=inputs=2:duration=first:dropout_transition=0[amixed]"
-        )
+        filter_parts.append("[voc][mus]amix=inputs=2:duration=first:dropout_transition=0[amixed]")
         a_final = "[amixed]"
     else:
         a_final = "[aout]"

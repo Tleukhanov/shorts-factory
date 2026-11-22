@@ -28,17 +28,22 @@ def _try_local_sd():
     try:
         import diffusers  # noqa: F401
         import torch  # noqa: F401
+
         return True
     except Exception:
         return False
 
 
-def _generate_local(scenario, out_dir, model_id, style_suffix, seed, width, height, steps, guidance):
+def _generate_local(
+    scenario, out_dir, model_id, style_suffix, seed, width, height, steps, guidance
+):
     import torch
     from diffusers import StableDiffusionPipeline
 
     pipe = StableDiffusionPipeline.from_pretrained(
-        model_id, torch_dtype=torch.float16, safety_checker=None,
+        model_id,
+        torch_dtype=torch.float16,
+        safety_checker=None,
         requires_safety_checker=False,
     )
     if torch.cuda.is_available():
@@ -48,7 +53,9 @@ def _generate_local(scenario, out_dir, model_id, style_suffix, seed, width, heig
         pipe = pipe.to("cpu")
         pipe.enable_model_cpu_offload()
 
-    generator = torch.Generator(device="cuda" if torch.cuda.is_available() else "cpu").manual_seed(seed)
+    generator = torch.Generator(device="cuda" if torch.cuda.is_available() else "cpu").manual_seed(
+        seed
+    )
     for i, seg in enumerate(scenario[1]):
         if not seg.prompt:
             print(f"  [{i + 1}] skip (no prompt)")
@@ -77,7 +84,10 @@ def main() -> int:
     parser.add_argument("scenario", help="Markdown scenario file")
     parser.add_argument("--out-dir", required=True, help="Output image directory")
     parser.add_argument("--model", default="runwayml/stable-diffusion-v1-5")
-    parser.add_argument("--style", default="old master oil painting, dark moody chiaroscuro, cinematic composition, umber and gold palette")
+    parser.add_argument(
+        "--style",
+        default="old master oil painting, dark moody chiaroscuro, cinematic composition, umber and gold palette",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--width", type=int, default=1024)
     parser.add_argument("--height", type=int, default=576)
@@ -86,8 +96,10 @@ def main() -> int:
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
 
-    logging.basicConfig(level=getattr(logging, args.log_level.upper(), logging.INFO),
-                        format="%(levelname)s %(message)s")
+    logging.basicConfig(
+        level=getattr(logging, args.log_level.upper(), logging.INFO),
+        format="%(levelname)s %(message)s",
+    )
 
     scenario_path = Path(args.scenario)
     if not scenario_path.is_file():
@@ -107,12 +119,22 @@ def main() -> int:
         print("   Upload the scenario there, run all cells, download images.zip.")
         return 1
 
-    _generate_local((meta, segments), out_dir, args.model, args.style, args.seed,
-                    args.width, args.height, args.steps, args.guidance)
+    _generate_local(
+        (meta, segments),
+        out_dir,
+        args.model,
+        args.style,
+        args.seed,
+        args.width,
+        args.height,
+        args.steps,
+        args.guidance,
+    )
     print(f"\n✅ Done: {len(segments)} images in {out_dir}")
     return 0
 
 
 if __name__ == "__main__":
     import logging
+
     raise SystemExit(main())
